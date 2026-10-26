@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Register New Student - TCE Gadag{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">Register New Student</h4>
+            <p class="text-muted small mb-0">Enroll student details and generate 128-d facial recognition biometrics.</p>
+        </div>
+        <a href="{{ url_for('students_list') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
+            <i class="bi bi-arrow-left me-1"></i> Back to Directory
+        </a>
+    </div>
+
+    <form method="POST" action="{{ url_for('add_student') }}" enctype="multipart/form-data" id="studentForm">
+        <div class="row g-4">
+            <!-- Student Information Form -->
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="fw-bold text-dark mb-0">Student Academic & Contact Details</h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" name="name" class="form-control bg-light" placeholder="e.g. Rahul Sharma" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Roll / USN Number <span class="text-danger">*</span></label>
+                                <input type="text" name="roll_number" class="form-control bg-light text-uppercase font-monospace" placeholder="e.g. 2TG21CS001" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Class & Section <span class="text-danger">*</span></label>
+                                <select name="class_section" class="form-select bg-light" required>
+                                    <option value="" disabled selected>Select Class & Section</option>
+                                    <option value="CSE-6A">CSE - 6th Sem Sec A</option>
+                                    <option value="CSE-6B">CSE - 6th Sem Sec B</option>
+                                    <option value="CSE-8A">CSE - 8th Sem Sec A</option>
+                                    <option value="CSE-8B">CSE - 8th Sem Sec B</option>
+                                    <option value="CSE-4A">CSE - 4th Sem Sec A</option>
+                                    <option value="CSE-4B">CSE - 4th Sem Sec B</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Contact Phone</label>
+                                <input type="tel" name="contact" class="form-control bg-light" placeholder="e.g. +91 98765 43210">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold text-muted">Email Address</label>
+                                <input type="email" name="email" class="form-control bg-light" placeholder="e.g. rahul@tce.ac.in">
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top">
+                            <div class="alert alert-info border-0 d-flex align-items-center gap-2 mb-0 small">
+                                <i class="bi bi-info-circle-fill fs-5 text-info"></i>
+                                <span>The system will extract facial landmark encodings to automatically identify the student during live class attendance.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Facial Enrollment Card (Webcam or Upload) -->
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="fw-bold text-dark mb-0">Biometric Facial Enrollment</h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <ul class="nav nav-pills nav-fill mb-3 bg-light p-1 rounded-3" id="faceTab" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link active py-2 small fw-semibold" id="webcam-tab" data-bs-toggle="pill" data-bs-target="#webcam-pane" type="button">
+                                    <i class="bi bi-camera me-1"></i> Live Webcam
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link py-2 small fw-semibold" id="upload-tab" data-bs-toggle="pill" data-bs-target="#upload-pane" type="button">
+                                    <i class="bi bi-upload me-1"></i> Upload Photo
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="faceTabContent">
+                            <!-- Tab 1: Live Camera Snapshot -->
+                            <div class="tab-pane fade show active text-center" id="webcam-pane">
+                                <div class="webcam-preview-box bg-dark rounded-3 overflow-hidden position-relative mb-3" style="height: 250px;">
+                                    <!-- Live Camera Stream Preview -->
+                                    <img id="liveStreamPreview" src="/video_feed" class="w-100 h-100 object-fit-cover" alt="Live Camera Preview">
+                                    <!-- Captured Photo Freeze-Frame -->
+                                    <img id="capturedPreviewImg" class="w-100 h-100 object-fit-cover" style="display: none;" alt="Captured Photo">
+                                    
+                                    <div id="captureSuccessBadge" class="position-absolute bottom-0 start-0 end-0 bg-success text-white py-1 small fw-semibold" style="display: none;">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Face Snapshot Captured
+                                    </div>
+                                </div>
+
+                                <input type="hidden" name="webcam_image_data" id="webcamImageData">
+
+                                <div class="d-flex justify-content-center gap-2">
+                                    <button type="button" class="btn btn-primary px-4 fw-semibold" id="snapBtn" onclick="takeSnapshot()">
+                                        <i class="bi bi-camera-fill me-1"></i> Capture Photo
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary px-3" id="retakeBtn" onclick="retakeSnapshot()" style="display: none;">
+                                        <i class="bi bi-arrow-counterclockwise me-1"></i> Retake
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Tab 2: File Upload -->
+                            <div class="tab-pane fade" id="upload-pane">
+                                <div class="mb-3 text-center">
+                                    <div class="border border-2 border-dashed rounded-3 p-4 bg-light mb-3" id="uploadDropArea">
+                                        <i class="bi bi-cloud-arrow-up fs-1 text-primary d-block mb-2"></i>
+                                        <span class="small text-muted d-block mb-2">Select student portrait (.jpg, .jpeg, .png)</span>
+                                        <input type="file" name="photo_file" id="photoFileInput" class="form-control" accept="image/*" onchange="previewUploadImage(this)">
+                                    </div>
+                                    <div id="filePreviewContainer" style="display: none;">
+                                        <img id="filePreviewImg" class="rounded-3 shadow-sm" style="max-height: 180px; max-width: 100%;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top">
+                            <button type="submit" class="btn btn-success w-100 py-2 rounded-3 fw-bold shadow-sm">
+                                <i class="bi bi-check-circle-fill me-1"></i> Save & Enroll Student
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function takeSnapshot() {
+    const liveFeed = document.getElementById('liveStreamPreview');
+    const previewImg = document.getElementById('capturedPreviewImg');
+    const badge = document.getElementById('captureSuccessBadge');
+    const hiddenInput = document.getElementById('webcamImageData');
+    const snapBtn = document.getElementById('snapBtn');
+    const retakeBtn = document.getElementById('retakeBtn');
+
+    snapBtn.disabled = true;
+    snapBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Capturing...';
+
+    fetch('/api/capture_frame')
+        .then(res => {
+            if (!res.ok) throw new Error("Camera frame unavailable");
+            return res.blob();
+        })
+        .then(blob => {
+            const reader = new FileReader();
+            reader.onloadend = function() {
+                const base64data = reader.result;
+                hiddenInput.value = base64data;
+                previewImg.src = base64data;
+                previewImg.style.display = 'block';
+                liveFeed.style.display = 'none';
+                badge.style.display = 'block';
+
+                snapBtn.style.display = 'none';
+                retakeBtn.style.display = 'inline-block';
+            };
+            reader.readAsDataURL(blob);
+        })
+        .catch(err => {
+            alert("Could not capture frame: " + err.message);
+            snapBtn.disabled = false;
+            snapBtn.innerHTML = '<i class="bi bi-camera-fill me-1"></i> Capture Photo';
+        });
+}
+
+function retakeSnapshot() {
+    const liveFeed = document.getElementById('liveStreamPreview');
+    const previewImg = document.getElementById('capturedPreviewImg');
+    const badge = document.getElementById('captureSuccessBadge');
+    const hiddenInput = document.getElementById('webcamImageData');
+    const snapBtn = document.getElementById('snapBtn');
+    const retakeBtn = document.getElementById('retakeBtn');
+
+    previewImg.style.display = 'none';
+    liveFeed.style.display = 'block';
+    badge.style.display = 'none';
+    hiddenInput.value = '';
+
+    snapBtn.disabled = false;
+    snapBtn.style.display = 'inline-block';
+    snapBtn.innerHTML = '<i class="bi bi-camera-fill me-1"></i> Capture Photo';
+    retakeBtn.style.display = 'none';
+}
+
+function previewUploadImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const previewContainer = document.getElementById('filePreviewContainer');
+            const previewImg = document.getElementById('filePreviewImg');
+            previewImg.src = e.target.result;
+            previewContainer.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+{% endblock %}

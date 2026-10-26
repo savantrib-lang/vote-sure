@@ -1,0 +1,505 @@
+{% extends "base.html" %}
+
+{% block title %}Enroll New Elector - VoteSure{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                    <i class="bi bi-person-bounding-box me-1"></i> Biometric Enrollment
+                </span>
+                <span class="badge bg-dark text-white px-2 py-1">
+                    <i class="bi bi-database-lock me-1"></i> Isolated Electoral Database
+                </span>
+            </div>
+            <h4 class="fw-bold mb-1 text-dark">Register & Enroll Elector</h4>
+            <p class="text-muted small mb-0">Record elector credentials into their specific institution database with isolated 128-d biometric facial vectors.</p>
+        </div>
+        <a href="{{ url_for('voters_list', election_id=selected_election_id) }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
+            <i class="bi bi-arrow-left me-1"></i> Back to Electoral Roll
+        </a>
+    </div>
+
+    <form method="POST" action="{{ url_for('add_voter') }}" enctype="multipart/form-data" id="voterForm">
+        <div class="row g-4">
+            <!-- Elector Profile Details -->
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-card-heading text-primary me-2"></i>Elector Identification & Demographics
+                        </h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="p-3 bg-light rounded-3 border border-primary border-opacity-25 mb-1">
+                                    <label class="form-label small fw-bold text-dark mb-1 d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-shield-check text-primary me-1"></i> Registering Into Election / Institution <span class="text-danger">*</span></span>
+                                        <span class="badge bg-primary text-white" style="font-size: 0.65rem;">Isolated Database</span>
+                                    </label>
+                                    <select name="election_id" class="form-select bg-white border-primary fw-medium" required>
+                                        {% for el in all_elections %}
+                                        <option value="{{ el.id }}" {% if el.id == selected_election_id %}selected{% endif %}>
+                                            {% if el.election_type == 'college' %}🎓 [College Union] {{ el.title }} — {{ el.institution_name }}{% elif el.election_type == 'school' %}🎒 [School Council] {{ el.title }} — {{ el.institution_name }}{% else %}🌐 [General Public] {{ el.title }} — National Roll{% endif %}
+                                            {% if el.status == 'active' %} (ACTIVE BOOTH){% endif %}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text small text-muted mt-1">
+                                        <i class="bi bi-info-circle me-1"></i> Electors enrolled here are <strong>strictly quarantined to this election's database</strong>. They cannot be viewed or authenticated in any other election sphere.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-7">
+                                <label class="form-label small fw-semibold text-muted">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" name="name" class="form-control bg-light" placeholder="e.g. Rahul Sharma" required>
+                            </div>
+
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold text-muted">Voter ID / Student Roll ID <span class="text-danger">*</span></label>
+                                <input type="text" name="voter_id" class="form-control bg-light text-uppercase font-monospace" placeholder="e.g. APEX-2026-001 / EPIC" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold text-muted">Age <span class="text-danger">*</span></label>
+                                <input type="number" name="age" min="18" max="120" value="20" class="form-control bg-light" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold text-muted">Gender <span class="text-danger">*</span></label>
+                                <select name="gender" class="form-select bg-light" required>
+                                    <option value="Male" selected>Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold text-muted">Constituency / Ward <span class="text-danger">*</span></label>
+                                <input type="text" name="constituency" class="form-control bg-light" placeholder="e.g. Ward 12 / North Zone" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Contact Mobile</label>
+                                <input type="tel" name="contact" class="form-control bg-light" placeholder="+91 98765 43210">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Email Address</label>
+                                <input type="email" name="email" class="form-control bg-light" placeholder="elector@example.com">
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top">
+                            <div class="p-3 bg-light rounded-3 border d-flex gap-3 align-items-center">
+                                <div class="fs-2 text-primary">
+                                    <i class="bi bi-shield-lock-fill"></i>
+                                </div>
+                                <div class="small text-muted">
+                                    <strong class="text-dark d-block">Strict One Person, One Vote Guarantee:</strong>
+                                    Upon registration, the facial encoding will be compared at the live booth. Once a vote is cast, duplicate attempts are immediately denied.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Facial Enrollment Card (Webcam or Upload) -->
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-camera-fill text-primary me-2"></i>Biometric Facial Enrollment
+                        </h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- Mandatory Live Biometric Security Notice -->
+                        <div class="alert alert-primary bg-primary bg-opacity-10 border border-primary-subtle rounded-3 p-3 mb-3 text-start">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-shield-check text-primary fs-5"></i>
+                                <strong class="text-dark small">Mandatory In-Person Live Biometric Enrollment</strong>
+                            </div>
+                            <div class="small text-muted">
+                                Elector must be present in person facing the live webcam. Uploading photos from Google, mobile galleries, or artificial images is strictly prohibited for election integrity.
+                            </div>
+                        </div>
+
+                        <!-- Live Camera Snapshot -->
+                        <div class="text-center" id="webcam-pane">
+                            <div id="cameraNoticeBox" style="display: none;"></div>
+
+                            <div class="webcam-preview-box rounded-3 overflow-hidden position-relative mb-3 shadow-sm border" style="min-height: 280px; max-height: 340px; aspect-ratio: 4/3; margin: 0 auto; background: #0f172a;">
+                                <!-- Real Browser Web Camera Video -->
+                                <video id="webcamVideo" autoplay playsinline webkit-playsinline muted class="w-100 h-100" style="object-fit: cover; display: block;"></video>
+                                <!-- Fallback Server Stream Preview (loaded only on demand for local debug) -->
+                                <img id="liveStreamPreview" src="" data-src="/video_feed" class="w-100 h-100 object-fit-cover" style="display: none;" alt="Server Stream Preview">
+                                <!-- Captured Photo Freeze-Frame -->
+                                <img id="capturedPreviewImg" class="w-100 h-100 object-fit-cover" style="display: none;" alt="Captured Photo">
+                                <canvas id="snapshotCanvas" style="display: none;"></canvas>
+                                
+                                <div id="captureSuccessBadge" class="position-absolute bottom-0 start-0 end-0 bg-success text-white py-2 small fw-semibold" style="display: none; z-index: 5;">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Live Facial Biometric Captured
+                                </div>
+                                <div id="cameraStatusPill" class="position-absolute top-0 end-0 m-2 badge bg-dark bg-opacity-75 text-light small" style="z-index: 5;">
+                                    <i class="bi bi-camera-video-fill text-success me-1"></i> Web Cam Active
+                                </div>
+
+                                <!-- User-Gesture Camera Start Overlay -->
+                                <div id="cameraStartOverlay" class="position-absolute top-0 start-0 w-100 h-100 flex-column align-items-center justify-content-center text-white p-3" style="background: rgba(15, 23, 42, 0.88); z-index: 8; display: flex;">
+                                    <div class="rounded-circle bg-primary bg-opacity-25 p-3 mb-2">
+                                        <i class="bi bi-camera-fill fs-2 text-primary"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">Live Camera Ready</h6>
+                                    <p class="small text-white-50 text-center mb-3 px-3" id="cameraPromptText">Tap the button below to turn on the camera lens.</p>
+                                    <button type="button" class="btn btn-primary px-4 py-2 rounded-pill fw-bold shadow-sm" onclick="startWebcam(true)">
+                                        <i class="bi bi-camera-video-fill me-1"></i> Start Camera Lens
+                                    </button>
+                                </div>
+
+                                <!-- Flip Camera Button (Front/Rear) for Mobile Devices -->
+                                <button type="button" class="btn btn-sm btn-dark bg-opacity-75 text-white border-0 rounded-pill position-absolute bottom-0 end-0 m-2 px-2 py-1 shadow-sm" id="flipCamBtn" onclick="toggleCameraFacing()" style="z-index: 6; display: none;" title="Switch Camera">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Flip Camera
+                                </button>
+                            </div>
+
+                            <input type="hidden" name="webcam_image_data" id="webcamImageData">
+                            <input type="hidden" name="webcam_liveness_burst" id="webcamLivenessBurst">
+
+                            <div class="d-flex justify-content-center gap-2">
+                                <button type="button" class="btn btn-primary px-4 fw-semibold shadow-sm" id="snapBtn" onclick="takeSnapshot()">
+                                    <i class="bi bi-camera-fill me-1"></i> Capture Live Photo
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary px-3" id="retakeBtn" onclick="retakeSnapshot()" style="display: none;">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i> Retake
+                                </button>
+                            </div>
+                            <span class="d-block small text-muted mt-2">Position elector facing the live lens. Anti-spoofing algorithm verifies real-time biological presence.</span>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top">
+                            <button type="submit" class="btn btn-success w-100 py-2 rounded-3 fw-bold shadow-sm">
+                                <i class="bi bi-check-circle-fill me-1"></i> Save & Enroll Elector
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let browserStream = null;
+let currentFacingMode = "user";
+
+async function startWebcam(fromUserClick = false) {
+    const video = document.getElementById('webcamVideo');
+    const pill = document.getElementById('cameraStatusPill');
+    const notice = document.getElementById('cameraNoticeBox');
+    const overlay = document.getElementById('cameraStartOverlay');
+    const promptText = document.getElementById('cameraPromptText');
+    const flipBtn = document.getElementById('flipCamBtn');
+
+    if (browserStream) {
+        browserStream.getTracks().forEach(t => t.stop());
+        browserStream = null;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        const isLocal = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+        const isHttps = (location.protocol === 'https:');
+        if (!isHttps && !isLocal) {
+            const httpsUrl = "https://surprise-bulletin-nissan-publications.trycloudflare.com" + location.pathname;
+            if (notice) {
+                notice.style.display = 'block';
+                notice.innerHTML = `
+                    <div class="alert alert-danger border border-danger shadow-sm rounded-3 p-3 text-start mb-3">
+                        <strong class="d-block mb-1 text-danger"><i class="bi bi-shield-x me-1"></i> Camera Blocked: Browser Security Policy</strong>
+                        <p class="small text-muted mb-2">Modern browsers (Chrome, Edge, Safari) strictly disable webcams on plain IP addresses (<code>${location.host}</code> marked <em>"Not secure"</em>).</p>
+                        <a href="${httpsUrl}" class="btn btn-warning btn-sm fw-bold px-3 rounded-pill shadow-sm">
+                            <i class="bi bi-shield-lock-fill me-1"></i> Switch to Secure HTTPS (Camera Works) 👉
+                        </a>
+                    </div>`;
+            }
+            if (promptText) {
+                promptText.innerHTML = `<span class="text-danger fw-semibold">Camera Blocked on Insecure IP!</span><br><small><a href="${httpsUrl}" class="btn btn-warning btn-sm fw-bold rounded-pill mt-1 px-3">Switch to Secure HTTPS</a></small>`;
+            }
+            if (pill) {
+                pill.className = "position-absolute top-0 end-0 m-2 badge bg-danger text-white small";
+                pill.innerHTML = '<i class="bi bi-shield-x me-1"></i> Not Secure Origin';
+            }
+        } else {
+            if (notice) {
+                notice.style.display = 'block';
+                notice.innerHTML = `<div class="alert alert-danger p-2 small">Your browser does not support webcam access. Please use modern Chrome, Edge, or Safari over HTTPS.</div>`;
+            }
+        }
+        return;
+    }
+
+    // Try progressively: ideal facingMode first, then simple video: true
+    let stream = null;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    try {
+        if (isMobile) {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: currentFacingMode } },
+                audio: false
+            });
+        } else {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        }
+    } catch (e1) {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        } catch (e2) {
+            console.warn("Camera request error:", e2);
+            handleCameraError(e2, fromUserClick);
+            return;
+        }
+    }
+
+    if (!stream) {
+        handleCameraError(new Error("Unable to capture video stream"), fromUserClick);
+        return;
+    }
+
+    browserStream = stream;
+    video.srcObject = stream;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.muted = true;
+
+    video.onloadedmetadata = () => {
+        video.play().catch(e => console.warn("Video play error:", e));
+    };
+    video.play().catch(e => console.warn("Video play error:", e));
+
+    // Successful stream activation
+    if (overlay) {
+        overlay.classList.add('d-none');
+        overlay.style.setProperty('display', 'none', 'important');
+    }
+    if (notice) notice.style.display = 'none';
+    video.style.display = 'block';
+    if (pill) {
+        pill.className = "position-absolute top-0 end-0 m-2 badge bg-success text-white small";
+        pill.innerHTML = '<i class="bi bi-camera-video-fill me-1"></i> Live Web Cam Active';
+    }
+    if (flipBtn && isMobile) {
+        flipBtn.style.display = 'inline-block';
+    }
+}
+
+function toggleCameraFacing() {
+    currentFacingMode = (currentFacingMode === "user") ? "environment" : "user";
+    startWebcam(true);
+}
+
+function handleCameraError(err, fromUserClick) {
+    const pill = document.getElementById('cameraStatusPill');
+    const notice = document.getElementById('cameraNoticeBox');
+    const overlay = document.getElementById('cameraStartOverlay');
+    const promptText = document.getElementById('cameraPromptText');
+
+    if (overlay) {
+        overlay.classList.remove('d-none');
+        overlay.style.setProperty('display', 'flex', 'important');
+    }
+
+    if (!fromUserClick) {
+        if (pill) {
+            pill.className = "position-absolute top-0 end-0 m-2 badge bg-secondary text-white small";
+            pill.innerHTML = '<i class="bi bi-camera-video me-1"></i> Ready';
+        }
+        if (promptText) {
+            promptText.textContent = "Tap below to activate your camera lens.";
+        }
+        return;
+    }
+
+    const errName = err ? (err.name || '') : '';
+    const errMsg = err ? (err.message || '') : '';
+
+    if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+        if (pill) {
+            pill.className = "position-absolute top-0 end-0 m-2 badge bg-danger text-white small";
+            pill.innerHTML = '<i class="bi bi-shield-x me-1"></i> Permission Blocked';
+        }
+        if (promptText) {
+            promptText.innerHTML = `<span class="text-warning fw-semibold">Camera is blocked in browser settings.</span><br><small>Click 🔒 in the URL address bar above &rarr; set Camera to <strong>Allow</strong> &rarr; tap Start Camera Lens.</small>`;
+        }
+        if (notice) {
+            notice.style.display = 'block';
+            notice.innerHTML = `
+                <div class="alert alert-warning border border-warning shadow-sm rounded-3 p-3 text-start mb-3">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="bi bi-shield-lock text-warning fs-3"></i>
+                        <strong class="text-dark">Browser Camera Permission Blocked</strong>
+                    </div>
+                    <p class="small text-muted mb-2">
+                        To enable the camera:
+                    </p>
+                    <ol class="small text-muted ps-3 mb-2">
+                        <li>Look at the top address bar in your browser (where the website URL is).</li>
+                        <li>Click the <strong>tune/lock icon (🔒 or ⚙️)</strong> on the left side of the address bar.</li>
+                        <li>Change <strong>Camera</strong> from <span class="badge bg-danger">Block</span> to <span class="badge bg-success">Allow</span>.</li>
+                        <li>Click <strong>"Start Camera Lens"</strong> again.</li>
+                    </ol>
+                </div>`;
+        }
+    } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+        if (pill) {
+            pill.className = "position-absolute top-0 end-0 m-2 badge bg-danger text-white small";
+            pill.innerHTML = '<i class="bi bi-camera-video-off-fill me-1"></i> No Camera';
+        }
+        if (promptText) {
+            promptText.innerHTML = `<span class="text-danger fw-semibold">No camera hardware detected.</span><br><small>If using a laptop, check if your device has a physical camera privacy slider or switch and slide it to ON.</small>`;
+        }
+        if (notice) {
+            notice.style.display = 'block';
+            notice.innerHTML = `
+                <div class="alert alert-danger border border-danger shadow-sm rounded-3 p-3 text-start mb-3">
+                    <strong><i class="bi bi-toggle-off text-danger me-1"></i> Camera Privacy Shutter or Switch is Closed</strong>
+                    <p class="small text-muted mb-0 mt-1">If your laptop or external webcam has a physical privacy slider or switch, ensure it is open/ON, then click <strong>Start Camera Lens</strong>.</p>
+                </div>`;
+        }
+    } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+        if (pill) {
+            pill.className = "position-absolute top-0 end-0 m-2 badge bg-warning text-dark small";
+            pill.innerHTML = '<i class="bi bi-camera-video-off-fill me-1"></i> Camera In Use';
+        }
+        if (promptText) {
+            promptText.innerHTML = `<span class="text-warning fw-semibold">Camera is busy.</span><br><small>Another app is using your webcam. Please close it and retry.</small>`;
+        }
+    } else {
+        if (pill) {
+            pill.className = "position-absolute top-0 end-0 m-2 badge bg-secondary text-white small";
+            pill.innerHTML = '<i class="bi bi-camera-video me-1"></i> Ready';
+        }
+        if (promptText) {
+            promptText.innerHTML = `<span class="text-danger fw-semibold">Camera Error: ${errName || 'Failed'}</span><br><small>${errMsg || 'Please check browser camera access.'}</small>`;
+        }
+    }
+}
+
+function retryWebcam() {
+    if (browserStream) {
+        browserStream.getTracks().forEach(t => t.stop());
+        browserStream = null;
+    }
+    const isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    if (isLocal) {
+        fetch('/api/restart_camera', { method: 'POST' }).finally(() => {
+            initWebcam(true);
+        });
+    } else {
+        initWebcam(true);
+    }
+}
+
+async function takeSnapshot() {
+    const video = document.getElementById('webcamVideo');
+    const previewImg = document.getElementById('capturedPreviewImg');
+    const serverFeed = document.getElementById('liveStreamPreview');
+    const badge = document.getElementById('captureSuccessBadge');
+    const hiddenInput = document.getElementById('webcamImageData');
+    const burstInput = document.getElementById('webcamLivenessBurst');
+    const snapBtn = document.getElementById('snapBtn');
+    const retakeBtn = document.getElementById('retakeBtn');
+
+    if (!browserStream || !video.srcObject) {
+        alert("Camera is not active. Please tap 'Start Camera Lens' and allow camera access first.");
+        startWebcam(true);
+        return;
+    }
+
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+        try {
+            await video.play();
+        } catch(e) {}
+        if (video.videoWidth === 0) {
+            alert("Camera is warming up. Please wait 1 second and tap Capture again.");
+            return;
+        }
+    }
+
+    snapBtn.disabled = true;
+    snapBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verifying Biological Liveness... (1s)';
+
+    const canvas = document.getElementById('snapshotCanvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    const frames = [];
+
+    // Capture 5 frames over ~1.0 second (every 200ms) to verify biological presence
+    for (let i = 0; i < 5; i++) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        frames.push(canvas.toDataURL('image/jpeg', 0.90));
+        if (i < 4) {
+            await new Promise(r => setTimeout(r, 200));
+        }
+    }
+
+    burstInput.value = JSON.stringify(frames);
+    const lastFrame = frames[frames.length - 1];
+    hiddenInput.value = lastFrame;
+    previewImg.src = lastFrame;
+    previewImg.style.display = 'block';
+    video.style.display = 'none';
+    badge.style.display = 'block';
+    badge.innerHTML = '<i class="bi bi-shield-check me-1"></i> Live 5-Frame Biological Sequence Captured';
+
+    snapBtn.style.display = 'none';
+    snapBtn.disabled = false;
+    retakeBtn.style.display = 'inline-block';
+}
+
+function retakeSnapshot() {
+    const video = document.getElementById('webcamVideo');
+    const previewImg = document.getElementById('capturedPreviewImg');
+    const badge = document.getElementById('captureSuccessBadge');
+    const hiddenInput = document.getElementById('webcamImageData');
+    const burstInput = document.getElementById('webcamLivenessBurst');
+    const snapBtn = document.getElementById('snapBtn');
+    const retakeBtn = document.getElementById('retakeBtn');
+
+    previewImg.style.display = 'none';
+    if (browserStream) {
+        video.style.display = 'block';
+    } else {
+        startWebcam(true);
+    }
+    badge.style.display = 'none';
+    hiddenInput.value = '';
+    if (burstInput) burstInput.value = '';
+
+    snapBtn.disabled = false;
+    snapBtn.style.display = 'inline-block';
+    snapBtn.innerHTML = '<i class="bi bi-camera-fill me-1"></i> Capture Live Photo';
+    retakeBtn.style.display = 'none';
+}
+
+const initWebcam = startWebcam;
+
+document.addEventListener('DOMContentLoaded', () => {
+    startWebcam(false);
+});
+
+window.addEventListener('beforeunload', () => {
+    if (browserStream) {
+        browserStream.getTracks().forEach(t => t.stop());
+    }
+});
+</script>
+{% endblock %}

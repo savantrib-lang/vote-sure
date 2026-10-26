@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}Live Camera Attendance Kiosk - TCE Gadag{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="live-dot" style="width: 12px; height: 12px;"></span>
+                <h4 class="fw-bold mb-0 text-dark">Live Facial Attendance Kiosk</h4>
+            </div>
+            <p class="text-muted small mb-0">
+                Position face inside the camera frame. The AI engine automatically recognizes students and stamps attendance.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('attendance_logs') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
+                <i class="bi bi-list-check me-1"></i> View Attendance Logs
+            </a>
+            <a href="{{ url_for('add_student') }}" class="btn btn-primary btn-sm px-3 rounded-pill">
+                <i class="bi bi-person-plus me-1"></i> Register New Face
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Live Video Stream -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow rounded-4 overflow-hidden bg-black">
+                <div class="card-header bg-navy text-white py-2 px-3 d-flex justify-content-between align-items-center">
+                    <span class="small fw-semibold">
+                        <i class="bi bi-camera-fill text-danger me-1"></i> OpenCV Live Video Feed (640x480)
+                    </span>
+                    <span class="badge bg-success bg-opacity-75 text-white font-monospace">
+                        <i class="bi bi-cpu me-1"></i> 128-d Deep CNN Active
+                    </span>
+                </div>
+                
+                <div class="video-frame-box text-center">
+                    <img id="liveVideoFeed" src="{{ url_for('video_feed') }}" alt="Live Camera Feed" class="img-fluid" onerror="handleVideoError(this)">
+                    <div class="hud-overlay d-none d-sm-block">
+                        <i class="bi bi-broadcast text-danger me-1"></i> AI Attendance Scanner
+                    </div>
+                </div>
+
+                <div class="card-footer bg-navy text-white-50 py-2 px-3 small d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-info-circle text-info me-1"></i> Auto-detection active (6s cooldown per student).
+                    </span>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="restartCamera()">
+                            <i class="bi bi-arrow-clockwise"></i> Reconnect Camera
+                        </button>
+                        <button class="btn btn-sm btn-outline-light py-0 px-2" onclick="toggleFullScreen()">
+                            <i class="bi bi-fullscreen"></i> Fullscreen
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Verification Status Card -->
+            <div class="card border-0 shadow-sm rounded-4 mt-3" id="recognitionEventCard">
+                <div class="card-body p-3 d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-blue-subtle" id="eventIcon">
+                        <i class="bi bi-person-bounding-box"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <span class="small text-muted text-uppercase fw-semibold" id="eventStatusLabel">Scanner Ready</span>
+                        <h6 class="fw-bold mb-0 text-dark" id="eventStudentName">Waiting for faces in frame...</h6>
+                        <span class="small text-muted" id="eventDetail">No student identified yet</span>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-secondary font-monospace" id="eventTime">--:--:--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Attendance Tracker on the Side -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Today's Recognized List</h6>
+                        <span class="text-muted small">Live stream attendance entries</span>
+                    </div>
+                    <span class="badge bg-success text-white px-2 py-1" id="todayPresentCount">
+                        {{ stats.today_present }} Present
+                    </span>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" id="liveAttendanceList" style="max-height: 520px; overflow-y: auto;">
+                        {% if today_records %}
+                            {% for rec in today_records %}
+                            <div class="list-group-item px-3 py-3 d-flex align-items-center justify-content-between border-light">
+                                <div class="d-flex align-items-center gap-2">
+                                    {% if rec.photo_path %}
+                                        <img src="{{ url_for('static', filename=rec.photo_path) }}" class="student-avatar" alt="{{ rec.name }}" style="width: 36px; height: 36px;">
+                                    {% else %}
+                                        <div class="student-avatar-placeholder" style="width: 36px; height: 36px; font-size: 0.85rem;">
+                                            {{ rec.name[0] }}
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <span class="fw-semibold text-dark d-block small">{{ rec.name }}</span>
+                                        <span class="text-muted" style="font-size: 0.75rem;">{{ rec.roll_number }} | {{ rec.class_section }}</span>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle small font-monospace">
+                                        <i class="bi bi-clock me-1"></i>{{ rec.time }}
+                                    </span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5 text-muted small" id="noLogsPlaceholder">
+                                <i class="bi bi-clock-history fs-3 d-block mb-2 text-secondary"></i>
+                                Attendance stamps will appear here in real-time as students face the camera.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let lastKnownEventTimestamp = null;
+
+// Synthetic Web Audio beep chime on successful verification
+function playRecognitionChime() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(880.00, audioCtx.currentTime + 0.15); // A5
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.35);
+    } catch(e) {
+        console.log("Audio alert not permitted by browser policy without user gesture.");
+    }
+}
+
+// Poll server for latest face recognition events every 1 second
+function pollLatestEvent() {
+    fetch('/api/latest_event')
+        .then(response => response.json())
+        .then(event => {
+            if (event && event.timestamp && event.timestamp !== lastKnownEventTimestamp) {
+                lastKnownEventTimestamp = event.timestamp;
+                updateRecognitionCard(event);
+                if (event.is_new) {
+                    playRecognitionChime();
+                    refreshAttendanceList();
+                }
+            }
+        })
+        .catch(err => console.error("Error polling event:", err));
+}
+
+function updateRecognitionCard(event) {
+    const card = document.getElementById('recognitionEventCard');
+    const icon = document.getElementById('eventIcon');
+    const label = document.getElementById('eventStatusLabel');
+    const name = document.getElementById('eventStudentName');
+    const detail = document.getElementById('eventDetail');
+    const time = document.getElementById('eventTime');
+
+    name.textContent = event.student_name + ` (${event.roll_number})`;
+    detail.textContent = `${event.class_section} • ${event.message}`;
+    time.textContent = event.timestamp;
+
+    if (event.is_new) {
+        card.className = "card border-0 shadow rounded-4 mt-3 bg-success bg-opacity-10 border border-success";
+        icon.className = "stat-icon bg-green-subtle";
+        icon.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
+        label.textContent = "Attendance Recorded";
+        label.className = "small text-success text-uppercase fw-bold";
+    } else {
+        card.className = "card border-0 shadow-sm rounded-4 mt-3 bg-info bg-opacity-10";
+        icon.className = "stat-icon bg-blue-subtle";
+        icon.innerHTML = '<i class="bi bi-person-check-fill text-primary"></i>';
+        label.textContent = "Student Verified";
+        label.className = "small text-primary text-uppercase fw-bold";
+    }
+}
+
+function refreshAttendanceList() {
+    fetch('/api/today_summary')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('todayPresentCount').textContent = `${data.today_present} Present`;
+            
+            const listContainer = document.getElementById('liveAttendanceList');
+            if (data.records && data.records.length > 0) {
+                let html = '';
+                data.records.forEach(rec => {
+                    const avatarHtml = rec.photo_path 
+                        ? `<img src="/static/${rec.photo_path}" class="student-avatar" style="width: 36px; height: 36px;">`
+                        : `<div class="student-avatar-placeholder" style="width: 36px; height: 36px; font-size: 0.85rem;">${rec.name[0]}</div>`;
+                    
+                    html += `
+                        <div class="list-group-item px-3 py-3 d-flex align-items-center justify-content-between border-light animate__animated animate__fadeIn">
+                            <div class="d-flex align-items-center gap-2">
+                                ${avatarHtml}
+                                <div>
+                                    <span class="fw-semibold text-dark d-block small">${rec.name}</span>
+                                    <span class="text-muted" style="font-size: 0.75rem;">${rec.roll_number} | ${rec.class_section}</span>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle small font-monospace">
+                                    <i class="bi bi-clock me-1"></i>${rec.time}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                });
+                listContainer.innerHTML = html;
+            }
+        });
+}
+
+function restartCamera() {
+    const videoElem = document.getElementById('liveVideoFeed');
+    videoElem.style.opacity = '0.5';
+    fetch('/api/restart_camera', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            setTimeout(() => {
+                videoElem.src = '/video_feed?t=' + Date.now();
+                videoElem.style.opacity = '1.0';
+            }, 800);
+        })
+        .catch(err => {
+            console.error("Error restarting camera:", err);
+            videoElem.src = '/video_feed?t=' + Date.now();
+            videoElem.style.opacity = '1.0';
+        });
+}
+
+function handleVideoError(img) {
+    console.log("Stream connection interrupted. Retrying in 2 seconds...");
+    setTimeout(() => {
+        img.src = '/video_feed?t=' + Date.now();
+    }, 2000);
+}
+
+function toggleFullScreen() {
+    const videoElem = document.getElementById('liveVideoFeed');
+    if (!document.fullscreenElement) {
+        if (videoElem.requestFullscreen) {
+            videoElem.requestFullscreen();
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
+}
+
+// Start polling on load
+setInterval(pollLatestEvent, 1000);
+</script>
+{% endblock %}

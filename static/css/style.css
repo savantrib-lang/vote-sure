@@ -1,0 +1,291 @@
+:root {
+    --brand-navy: #0f172a;
+    --brand-primary: #2563eb;
+    --brand-vote-green: #059669;
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1e293b;
+    background-color: #f8fafc !important;
+}
+
+.bg-navy {
+    background-color: var(--brand-navy) !important;
+}
+
+.bg-gradient-vote {
+    background: linear-gradient(135deg, #10b981, #2563eb) !important;
+}
+
+.brand-badge {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: #fff;
+}
+
+.brand-subtext {
+    font-size: 0.68rem;
+    color: #94a3b8;
+    letter-spacing: 0.02em;
+}
+
+.navbar-nav .nav-link {
+    color: #cbd5e1;
+    font-weight: 500;
+    font-size: 0.92rem;
+    padding: 0.5rem 0.85rem !important;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.navbar-nav .nav-link.active {
+    color: #ffffff;
+    background-color: rgba(37, 99, 235, 0.4);
+}
+
+.user-pill {
+    background-color: rgba(255, 255, 255, 0.08);
+    padding: 0.35rem 0.85rem;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.avatar-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: #10b981;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+}
+
+.role-badge {
+    font-size: 0.65rem;
+    color: #38bdf8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #10b981;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.9); opacity: 0.7; }
+    50% { transform: scale(1.3); opacity: 1; }
+    100% { transform: scale(0.9); opacity: 0.7; }
+}
+
+/* Stat Cards */
+.stat-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow-hover);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+.bg-blue-subtle { background-color: #eff6ff; color: #2563eb; }
+.bg-green-subtle { background-color: #f0fdf4; color: #16a34a; }
+.bg-amber-subtle { background-color: #fffbeb; color: #d97706; }
+.bg-purple-subtle { background-color: #faf5ff; color: #9333ea; }
+.bg-red-subtle { background-color: #fef2f2; color: #dc2626; }
+
+/* Custom Tables */
+.custom-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.custom-table thead th {
+    background-color: #f1f5f9;
+    color: #475569;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.85rem 1rem;
+    border-top: none;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.custom-table tbody td {
+    padding: 0.85rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.9rem;
+}
+
+.voter-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e2e8f0;
+}
+
+.voter-avatar-placeholder {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background-color: #e2e8f0;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+/* Video Feed Container */
+.video-frame-box {
+    position: relative;
+    background: #090d16;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    border: 2px solid #1e293b;
+}
+
+.video-frame-box img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
+
+.hud-overlay {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    color: #38bdf8;
+}
+
+/* EVM Ballot Styling */
+.candidate-card {
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.candidate-card:hover {
+    border-color: #059669;
+    box-shadow: 0 6px 16px rgba(5, 150, 105, 0.12);
+    transform: translateY(-2px);
+}
+
+.candidate-card.selected {
+    border-color: #059669 !important;
+    background-color: #ecfdf5 !important;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.3), 0 10px 25px rgba(5, 150, 105, 0.2) !important;
+}
+
+.btn-evm-vote {
+    background-color: #059669;
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(5, 150, 105, 0.3);
+    transition: transform 0.1s, background-color 0.2s;
+}
+
+.btn-evm-vote:hover {
+    background-color: #047857;
+    color: #ffffff;
+    transform: scale(1.03);
+}
+
+.btn-evm-vote:active {
+    transform: scale(0.97);
+}
+
+.btn-submit-vote {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    color: #ffffff;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 0.95rem 2.5rem;
+    border-radius: 50px;
+    box-shadow: 0 8px 20px rgba(5, 150, 105, 0.35);
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.btn-submit-vote:hover:not(:disabled) {
+    background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 25px rgba(5, 150, 105, 0.45);
+}
+
+.btn-submit-vote:disabled {
+    background: #94a3b8 !important;
+    color: #f1f5f9 !important;
+    box-shadow: none !important;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Status Badges */
+.badge-voted {
+    background-color: #dcfce7;
+    color: #15803d;
+    font-weight: 600;
+    padding: 0.35rem 0.65rem;
+    border-radius: 20px;
+}
+
+.badge-pending {
+    background-color: #fef3c7;
+    color: #b45309;
+    font-weight: 600;
+    padding: 0.35rem 0.65rem;
+    border-radius: 20px;
+}

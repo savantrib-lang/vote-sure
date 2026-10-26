@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Student Data Management - TCE Gadag{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">Student Directory & Biometric Profiles</h4>
+            <p class="text-muted small mb-0">
+                Centralized database of enrolled students, facial encodings, and academic sections.
+            </p>
+        </div>
+        <div>
+            <a href="{{ url_for('add_student') }}" class="btn btn-primary px-3 shadow-sm rounded-pill d-flex align-items-center gap-2">
+                <i class="bi bi-person-plus-fill"></i> Register New Student
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <form method="GET" action="{{ url_for('students_list') }}" class="row g-2 align-items-center">
+                <div class="col-md-6 col-lg-8">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0 text-muted">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" name="q" value="{{ query or '' }}" class="form-control bg-light border-start-0" placeholder="Search by student name, roll number, or class...">
+                    </div>
+                </div>
+                <div class="col-md-3 col-lg-2">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-filter"></i> Search
+                    </button>
+                </div>
+                {% if query %}
+                <div class="col-md-3 col-lg-2">
+                    <a href="{{ url_for('students_list') }}" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Students Table Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+            <span class="fw-semibold text-dark">
+                Enrolled Students ({{ students|length }})
+            </span>
+            <span class="small text-muted">Dept. of Computer Science & Engineering</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table custom-table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Student Profile</th>
+                        <th>Roll Number</th>
+                        <th>Class & Section</th>
+                        <th>Contact Info</th>
+                        <th>Facial Model</th>
+                        <th>Registered On</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if students %}
+                        {% for s in students %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    {% if s.photo_path %}
+                                        <img src="{{ url_for('static', filename=s.photo_path) }}" class="student-avatar" alt="{{ s.name }}">
+                                    {% else %}
+                                        <div class="student-avatar-placeholder">
+                                            {{ s.name[0] }}
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <span class="fw-bold text-dark d-block">{{ s.name }}</span>
+                                        <span class="text-muted small">{{ s.email or 'No email' }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="font-monospace fw-semibold">{{ s.roll_number }}</span></td>
+                            <td><span class="badge bg-light text-dark border">{{ s.class_section }}</span></td>
+                            <td>
+                                <span class="small text-muted d-block"><i class="bi bi-telephone text-secondary me-1"></i>{{ s.contact or 'N/A' }}</span>
+                            </td>
+                            <td>
+                                {% if s.has_face_encoding %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Enrolled
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> Missing Model
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ s.created_at[:10] if s.created_at else 'Recent' }}</td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('edit_student', student_id=s.id) }}" class="btn btn-outline-secondary" title="Edit details">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('delete_student', student_id=s.id) }}" onsubmit="return confirm('Are you sure you want to delete student {{ s.name }} and their attendance records?');" class="d-inline">
+                                        <button type="submit" class="btn btn-outline-danger" title="Delete student">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-people fs-2 d-block mb-2 text-secondary"></i>
+                                No student records found matching the criteria.<br>
+                                <a href="{{ url_for('add_student') }}" class="btn btn-sm btn-primary mt-2">
+                                    <i class="bi bi-person-plus"></i> Register First Student
+                                </a>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

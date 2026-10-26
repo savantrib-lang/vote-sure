@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Records & History - TCE Gadag{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">Attendance Records & Historical Logs</h4>
+            <p class="text-muted small mb-0">Search, filter, adjust, and export class attendance sessions.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm px-3 rounded-pill" data-bs-toggle="modal" data-bs-target="#manualMarkModal">
+                <i class="bi bi-pencil-plus me-1"></i> Manual Mark
+            </button>
+            <a href="{{ url_for('export_attendance', date=filter_date, class_section=filter_class, status=filter_status) }}" class="btn btn-success btn-sm px-3 rounded-pill shadow-sm">
+                <i class="bi bi-file-earmark-excel me-1"></i> Export to CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <form method="GET" action="{{ url_for('attendance_logs') }}" class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-muted mb-1">Date</label>
+                    <input type="date" name="date" value="{{ filter_date or '' }}" class="form-control bg-light">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-muted mb-1">Class / Section</label>
+                    <select name="class_section" class="form-select bg-light">
+                        <option value="">All Classes</option>
+                        {% for c in stats.classes %}
+                            <option value="{{ c }}" {% if filter_class == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold text-muted mb-1">Status</label>
+                    <select name="status" class="form-select bg-light">
+                        <option value="">All Statuses</option>
+                        <option value="Present" {% if filter_status == 'Present' %}selected{% endif %}>Present</option>
+                        <option value="Absent" {% if filter_status == 'Absent' %}selected{% endif %}>Absent</option>
+                        <option value="Late" {% if filter_status == 'Late' %}selected{% endif %}>Late</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-filter"></i> Apply Filters
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ url_for('attendance_logs') }}" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Attendance Table -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+            <span class="fw-semibold text-dark">
+                Attendance Records ({{ records|length }})
+            </span>
+            <span class="small text-muted">TCE Gadag - Dept of CSE</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table custom-table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Student</th>
+                        <th>Roll Number</th>
+                        <th>Class</th>
+                        <th>Date</th>
+                        <th>Timestamp</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if records %}
+                        {% for r in records %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    {% if r.photo_path %}
+                                        <img src="{{ url_for('static', filename=r.photo_path) }}" class="student-avatar" alt="{{ r.name }}">
+                                    {% else %}
+                                        <div class="student-avatar-placeholder">
+                                            {{ r.name[0] }}
+                                        </div>
+                                    {% endif %}
+                                    <span class="fw-bold text-dark">{{ r.name }}</span>
+                                </div>
+                            </td>
+                            <td><span class="font-monospace fw-semibold">{{ r.roll_number }}</span></td>
+                            <td><span class="badge bg-light text-dark border">{{ r.class_section }}</span></td>
+                            <td><i class="bi bi-calendar3 text-muted me-1"></i>{{ r.date }}</td>
+                            <td><i class="bi bi-clock text-muted me-1"></i>{{ r.time }}</td>
+                            <td>
+                                <span class="small text-muted">
+                                    <i class="bi bi-cpu text-primary me-1"></i>{{ r.verified_method }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if r.status == 'Present' %}
+                                    <span class="badge-present"><i class="bi bi-check-circle-fill me-1"></i>Present</span>
+                                {% elif r.status == 'Late' %}
+                                    <span class="badge bg-warning-subtle text-warning border px-2 py-1"><i class="bi bi-clock-history me-1"></i>Late</span>
+                                {% else %}
+                                    <span class="badge-absent"><i class="bi bi-x-circle-fill me-1"></i>Absent</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <form method="POST" action="{{ url_for('delete_attendance_record', record_id=r.id) }}" onsubmit="return confirm('Delete this attendance entry?');" class="d-inline">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Remove Entry">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-calendar-x fs-2 d-block mb-2 text-secondary"></i>
+                                No attendance records match the specified filters.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Manual Mark Attendance Modal -->
+<div class="modal fade" id="manualMarkModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-navy text-white py-3 border-0">
+                <h6 class="modal-title fw-bold">Manual Attendance Entry</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('manual_mark') }}">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Select Student <span class="text-danger">*</span></label>
+                        <select name="student_id" class="form-select bg-light" required>
+                            <option value="" disabled selected>Choose student...</option>
+                            {% for s in students %}
+                                <option value="{{ s.id }}">{{ s.name }} ({{ s.roll_number }} - {{ s.class_section }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Date</label>
+                            <input type="date" name="date" value="{{ stats.today_date }}" class="form-control bg-light" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Status</label>
+                            <select name="status" class="form-select bg-light">
+                                <option value="Present">Present</option>
+                                <option value="Late">Late</option>
+                                <option value="Absent">Absent</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-3 bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-3">Save Attendance Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

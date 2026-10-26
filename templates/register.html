@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+
+{% block title %}Register Election Official - Smart E-Voting | VoteSure{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-navy text-white text-center py-4 border-0">
+                    <div class="brand-badge bg-gradient-vote mx-auto mb-2" style="width: 52px; height: 52px;">
+                        <i class="bi bi-shield-plus fs-2"></i>
+                    </div>
+                    <h5 class="fw-bold mb-1">Official Registration Portal</h5>
+                    <p class="text-white-50 small mb-0">National Commission &bull; Campus Student Unions &bull; School Councils</p>
+                    <span class="badge bg-success bg-opacity-75 text-white mt-2 px-3 py-1 font-monospace">
+                        <i class="bi bi-person-badge me-1"></i> Authorized Personnel Enrollment
+                    </span>
+                </div>
+
+                <div class="card-body p-4 p-md-5 bg-white">
+                    <div class="mb-4 text-center text-md-start">
+                        <h5 class="fw-bold text-dark mb-1">Register Official Designation</h5>
+                        <p class="text-muted small">Select your official role to configure jurisdiction, ballot seal privileges, and booth authority.</p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('register') }}" id="officialRegisterForm">
+                        
+                        <!-- Role / Designation Selection Cards -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase text-muted tracking-wider mb-2">
+                                Official Designation / Role <span class="text-danger">*</span>
+                            </label>
+
+                            <div class="row g-2 mb-3">
+                                <!-- 1. Chief Electoral Officer -->
+                                <div class="col-12 col-md-6">
+                                    <label class="role-card d-block p-3 rounded-3 border h-100 position-relative" for="role_ceo" id="card_ceo">
+                                        <div class="d-flex align-items-start gap-2">
+                                            <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="role" id="role_ceo" value="chief_electoral_officer" onchange="updateRoleDetails('chief_electoral_officer')">
+                                            <div>
+                                                <div class="d-flex align-items-center gap-1 mb-1">
+                                                    <span class="badge bg-danger text-white" style="font-size: 0.65rem;">NATIONAL COMMISSION</span>
+                                                </div>
+                                                <strong class="text-dark d-block small mb-1">Chief Electoral Officer</strong>
+                                                <span class="text-muted d-block" style="font-size: 0.74rem; line-height: 1.35;">
+                                                    VoteSure National Election authority. Holds exclusive seal to unlock General Public Election results.
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- 2. Polling Officer -->
+                                <div class="col-12 col-md-6">
+                                    <label class="role-card d-block p-3 rounded-3 border h-100 position-relative active-card" for="role_officer" id="card_officer">
+                                        <div class="d-flex align-items-start gap-2">
+                                            <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="role" id="role_officer" value="officer" checked onchange="updateRoleDetails('officer')">
+                                            <div>
+                                                <div class="d-flex align-items-center gap-1 mb-1">
+                                                    <span class="badge bg-primary text-white" style="font-size: 0.65rem;">BOOTH VERIFICATION</span>
+                                                </div>
+                                                <strong class="text-dark d-block small mb-1">Polling Officer</strong>
+                                                <span class="text-muted d-block" style="font-size: 0.74rem; line-height: 1.35;">
+                                                    Polling booth verification. Operates live biometric EVM kiosks and verifies facial identities.
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- 3. School / College Election Officer -->
+                                <div class="col-12 col-md-6">
+                                    <label class="role-card d-block p-3 rounded-3 border h-100 position-relative" for="role_college_officer" id="card_college_officer">
+                                        <div class="d-flex align-items-start gap-2">
+                                            <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="role" id="role_college_officer" value="college_election_officer" onchange="updateRoleDetails('college_election_officer')">
+                                            <div>
+                                                <div class="d-flex align-items-center gap-1 mb-1">
+                                                    <span class="badge bg-info text-dark" style="font-size: 0.65rem;">CAMPUS RETURNING OFFICER</span>
+                                                </div>
+                                                <strong class="text-dark d-block small mb-1">School / College Election Officer</strong>
+                                                <span class="text-muted d-block" style="font-size: 0.74rem; line-height: 1.35;">
+                                                    Supervises Student Union / Council polls. Manages campus candidates and unseals college results.
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- 4. College / School Principal -->
+                                <div class="col-12 col-md-6">
+                                    <label class="role-card d-block p-3 rounded-3 border h-100 position-relative" for="role_principal" id="card_principal">
+                                        <div class="d-flex align-items-start gap-2">
+                                            <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="role" id="role_principal" value="principal" onchange="updateRoleDetails('principal')">
+                                            <div>
+                                                <div class="d-flex align-items-center gap-1 mb-1">
+                                                    <span class="badge bg-success text-white" style="font-size: 0.65rem;">INSTITUTION HEAD</span>
+                                                </div>
+                                                <strong class="text-dark d-block small mb-1">College / School Principal</strong>
+                                                <span class="text-muted d-block" style="font-size: 0.74rem; line-height: 1.35;">
+                                                    Executive head. Holds designated password seal to unseal and publish College/School election results.
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- 5. Central Administrator -->
+                                <div class="col-12">
+                                    <label class="role-card d-block p-2 px-3 rounded-3 border position-relative" for="role_admin" id="card_admin">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input class="form-check-input flex-shrink-0" type="radio" name="role" id="role_admin" value="admin" onchange="updateRoleDetails('admin')">
+                                            <div class="d-flex align-items-center justify-content-between flex-grow-1 flex-wrap gap-1">
+                                                <div>
+                                                    <span class="badge bg-dark text-white small me-1" style="font-size: 0.65rem;">SYSTEM ADMIN</span>
+                                                    <strong class="text-dark small">Administrator (Chief Election Commissioner)</strong>
+                                                </div>
+                                                <span class="text-muted small" style="font-size: 0.72rem;">Central multi-election oversight</span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Live Authority Explanation Box -->
+                            <div class="p-3 rounded-3 border" id="authorityBox" style="background-color: #eff6ff; border-color: #bfdbfe !important;">
+                                <div class="d-flex align-items-start gap-2">
+                                    <i class="bi bi-fingerprint fs-5 text-primary mt-1" id="authorityIcon"></i>
+                                    <div>
+                                        <strong class="d-block small text-dark" id="authorityTitle">Selected Designation: Polling Officer (Booth Verification)</strong>
+                                        <span class="small text-muted" id="authorityDesc">Authorized for polling station biometric voter authentication, live camera verification, and EVM booth kiosk management.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Full Name & Institution -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Full Name <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted">
+                                        <i class="bi bi-person-vcard"></i>
+                                    </span>
+                                    <input type="text" name="full_name" id="full_name" class="form-control bg-light border-start-0" placeholder="e.g. Ramesh Patil" required autofocus>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted" id="institutionLabel">Assigned Station / Booth / College</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted">
+                                        <i class="bi bi-building"></i>
+                                    </span>
+                                    <input type="text" name="institution_name" id="institution_name" class="form-control bg-light border-start-0" placeholder="e.g. Booth #14 - South Campus Kiosk">
+                                </div>
+                                <span class="form-text small text-muted" id="institutionHelp">Assigned voting booth number or campus location.</span>
+                            </div>
+                        </div>
+
+                        <!-- Email & Phone Number -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Official Email Address <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted">
+                                        <i class="bi bi-envelope"></i>
+                                    </span>
+                                    <input type="email" name="email" id="email" class="form-control bg-light border-start-0" placeholder="e.g. officer.patil@election.gov.in" required autocomplete="email">
+                                </div>
+                                <span class="form-text small text-muted">Official alerts & credential notifications.</span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Phone Number / Mobile <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted">
+                                        <i class="bi bi-telephone"></i>
+                                    </span>
+                                    <input type="tel" name="contact" id="contact" class="form-control bg-light border-start-0" placeholder="e.g. +91 98765 43210" required autocomplete="tel">
+                                </div>
+                                <span class="form-text small text-muted">Emergency verification & booth dispatch.</span>
+                            </div>
+                        </div>
+
+                        <!-- Username & Passwords -->
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">Portal Username <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted">
+                                    <i class="bi bi-at"></i>
+                                </span>
+                                <input type="text" name="username" id="username" class="form-control bg-light border-start-0" placeholder="e.g. officer_patil" required autocomplete="username">
+                            </div>
+                            <span class="form-text small text-muted">Letters, numbers, and underscores only. Used to sign in.</span>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Password <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted">
+                                        <i class="bi bi-lock"></i>
+                                    </span>
+                                    <input type="password" name="password" id="password" class="form-control bg-light border-start-0" placeholder="••••••••" required minlength="4" autocomplete="new-password">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Confirm Password <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted">
+                                        <i class="bi bi-shield-check"></i>
+                                    </span>
+                                    <input type="password" name="confirm_password" id="confirm_password" class="form-control bg-light border-start-0" placeholder="••••••••" required minlength="4" autocomplete="new-password">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-2 rounded-3 fw-semibold shadow-sm">
+                            <i class="bi bi-check-circle-fill me-1"></i> Register Official Account
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-3 pt-3 border-top">
+                        <span class="text-muted small">Already registered?</span>
+                        <a href="{{ url_for('login') }}" class="text-primary fw-semibold small text-decoration-none ms-1">
+                            Sign in to Portal &rarr;
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.role-card {
+    transition: all 0.2s ease-in-out;
+    background-color: #ffffff;
+    border: 2px solid #e2e8f0 !important;
+    cursor: pointer;
+}
+.role-card:hover {
+    border-color: #93c5fd !important;
+    background-color: #f8fafc;
+}
+.role-card.active-card {
+    border-color: #2563eb !important;
+    background-color: #f0f7ff !important;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.08);
+}
+</style>
+
+<script>
+const roleMeta = {
+    'chief_electoral_officer': {
+        title: 'Chief Electoral Officer (VoteSure National Commission)',
+        desc: 'National Commission level authority. Unseals VoteSure General Public Election results vault and certifies national cryptographic tally.',
+        icon: 'bi-globe2 fs-5 text-danger mt-1',
+        boxBg: '#fff1f2',
+        boxBorder: '#fecdd3',
+        cardId: 'card_ceo',
+        instLabel: 'Commission / State Branch Name',
+        instPlaceholder: 'e.g. National Election Commission / State Electoral Office',
+        instHelp: 'Official national or state commission branch.',
+        namePlaceholder: 'e.g. S. P. Sharma (Chief Electoral Officer)',
+        userPlaceholder: 'e.g. ceo_sharma',
+        emailPlaceholder: 'e.g. ceo.sharma@eci.gov.in',
+        phonePlaceholder: 'e.g. +91 98111 22334'
+    },
+    'officer': {
+        title: 'Polling Officer (Booth Verification & Biometrics)',
+        desc: 'Authorized for polling station biometric voter authentication, live camera face verification, and EVM booth kiosk operations.',
+        icon: 'bi-fingerprint fs-5 text-primary mt-1',
+        boxBg: '#eff6ff',
+        boxBorder: '#bfdbfe',
+        cardId: 'card_officer',
+        instLabel: 'Assigned Polling Station / Booth',
+        instPlaceholder: 'e.g. Booth #14 - South Campus Kiosk',
+        instHelp: 'Assigned voting booth number or district location.',
+        namePlaceholder: 'e.g. Ramesh Patil (Polling Officer)',
+        userPlaceholder: 'e.g. officer_patil',
+        emailPlaceholder: 'e.g. officer.patil@election.gov.in',
+        phonePlaceholder: 'e.g. +91 98222 33445'
+    },
+    'college_election_officer': {
+        title: 'School / College Election Officer (Returning Officer)',
+        desc: 'Administers campus Student Union / Council elections, registers student nominations, manages candidates, and unseals campus election results.',
+        icon: 'bi-mortarboard-fill fs-5 text-info mt-1',
+        boxBg: '#f0fdfa',
+        boxBorder: '#99f6e4',
+        cardId: 'card_college_officer',
+        instLabel: 'College / School / University Name',
+        instPlaceholder: 'e.g. Apex Institute of Engineering & Technology',
+        instHelp: 'Educational institution conducting the student body elections.',
+        namePlaceholder: 'e.g. Prof. Vivek Deshmukh (Election Officer)',
+        userPlaceholder: 'e.g. college_officer',
+        emailPlaceholder: 'e.g. election.officer@apex.edu.in',
+        phonePlaceholder: 'e.g. +91 98333 44556'
+    },
+    'principal': {
+        title: 'College / School Principal (Institution Head)',
+        desc: 'Executive head of the educational institution. Holds official password seal authority to unseal and publish College/School Student Union results.',
+        icon: 'bi-building fs-5 text-success mt-1',
+        boxBg: '#f0fdf4',
+        boxBorder: '#bbf7d0',
+        cardId: 'card_principal',
+        instLabel: 'College / School Name',
+        instPlaceholder: 'e.g. Apex Institute of Engineering & Technology / St. Xavier\'s School',
+        instHelp: 'College or school where union elections are held.',
+        namePlaceholder: 'e.g. Dr. Arvind Kulkarni (Principal)',
+        userPlaceholder: 'e.g. principal_arvind',
+        emailPlaceholder: 'e.g. principal@apex.edu.in',
+        phonePlaceholder: 'e.g. +91 98444 55667'
+    },
+    'admin': {
+        title: 'Administrator (Chief Election Commissioner)',
+        desc: 'Central system administrator with full multi-election supervision across both National General Elections and Campus Student Unions.',
+        icon: 'bi-shield-check fs-5 text-dark mt-1',
+        boxBg: '#f8fafc',
+        boxBorder: '#cbd5e1',
+        cardId: 'card_admin',
+        instLabel: 'Central Administration / CEC Office',
+        instPlaceholder: 'e.g. Election Commission Headquarters',
+        instHelp: 'Central administrative department or headquarters.',
+        namePlaceholder: 'e.g. Rajiv Kumar (Chief Election Commissioner)',
+        userPlaceholder: 'e.g. admin_commissioner',
+        emailPlaceholder: 'e.g. admin@votesure.gov.in',
+        phonePlaceholder: 'e.g. +91 98000 11223'
+    }
+};
+
+function updateRoleDetails(role) {
+    const data = roleMeta[role] || roleMeta['officer'];
+    
+    // Update card styling
+    document.querySelectorAll('.role-card').forEach(c => c.classList.remove('active-card'));
+    const targetCard = document.getElementById(data.cardId);
+    if (targetCard) targetCard.classList.add('active-card');
+    
+    // Update radio
+    const radio = document.querySelector(`input[name="role"][value="${role}"]`);
+    if (radio) radio.checked = true;
+
+    // Update explanation box
+    const box = document.getElementById('authorityBox');
+    const title = document.getElementById('authorityTitle');
+    const desc = document.getElementById('authorityDesc');
+    const icon = document.getElementById('authorityIcon');
+
+    if (box) {
+        box.style.backgroundColor = data.boxBg;
+        box.style.borderColor = data.boxBorder;
+    }
+    if (title) title.textContent = 'Selected Designation: ' + data.title;
+    if (desc) desc.textContent = data.desc;
+    if (icon) icon.className = 'bi ' + data.icon;
+
+    // Update dynamic fields
+    const instLabel = document.getElementById('institutionLabel');
+    const instInput = document.getElementById('institution_name');
+    const instHelp = document.getElementById('institutionHelp');
+    const nameInput = document.getElementById('full_name');
+    const userInput = document.getElementById('username');
+    const emailInput = document.getElementById('email');
+    const phoneInput = document.getElementById('contact');
+
+    if (instLabel) instLabel.textContent = data.instLabel;
+    if (instInput) instInput.placeholder = data.instPlaceholder;
+    if (instHelp) instHelp.textContent = data.instHelp;
+    if (nameInput && !nameInput.value) nameInput.placeholder = data.namePlaceholder;
+    if (userInput && !userInput.value) userInput.placeholder = data.userPlaceholder;
+    if (emailInput && !emailInput.value) emailInput.placeholder = data.emailPlaceholder;
+    if (phoneInput && !phoneInput.value) phoneInput.placeholder = data.phonePlaceholder;
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const checked = document.querySelector('input[name="role"]:checked');
+    if (checked) {
+        updateRoleDetails(checked.value);
+    } else {
+        updateRoleDetails('officer');
+    }
+});
+</script>
+{% endblock %}

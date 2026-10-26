@@ -1,0 +1,26 @@
+Attendance ID,Date,Time,Roll Number,Student Name,Class / Section,Status,Verification Method,Contact
+25,2026-10-11,09:47:37,2TG21CS002,Sneha Kulkarni,CSE-6A,Present,Face Recognition,+91 98451 23452
+24,2026-10-11,09:44:15,2TG21CS003,Amit Deshmukh,CSE-6B,Present,Face Recognition,+91 98451 23453
+22,2026-10-11,09:24:18,2TG21CS001,Rahul Patil,CSE-6A,Present,Face Recognition,+91 98451 23451
+23,2026-10-11,09:16:53,2TG21CS006,Ananya Joshi,CSE-8A,Present,Face Recognition,+91 98451 23456
+20,2026-10-10,09:55:26,2TG21CS003,Amit Deshmukh,CSE-6B,Present,Face Recognition,+91 98451 23453
+17,2026-10-10,09:45:58,2TG21CS004,Pooja Nayak,CSE-6B,Present,Face Recognition,+91 98451 23454
+21,2026-10-10,09:43:39,2TG21CS006,Ananya Joshi,CSE-8A,Present,Face Recognition,+91 98451 23456
+16,2026-10-10,09:39:41,2TG21CS001,Rahul Patil,CSE-6A,Present,Face Recognition,+91 98451 23451
+18,2026-10-10,09:33:48,2TG21CS008,Kavya Angadi,CSE-6B,Present,Face Recognition,+91 98451 23458
+19,2026-10-10,09:19:44,2TG21CS005,Vikram Hiremath,CSE-8A,Present,Face Recognition,+91 98451 23455
+14,2026-10-09,09:53:18,2TG21CS006,Ananya Joshi,CSE-8A,Present,Face Recognition,+91 98451 23456
+15,2026-10-09,09:50:41,2TG21CS007,Darshan Bellad,CSE-6A,Present,Face Recognition,+91 98451 23457
+12,2026-10-09,09:40:40,2TG21CS008,Kavya Angadi,CSE-6B,Present,Face Recognition,+91 98451 23458
+13,2026-10-09,09:24:20,2TG21CS002,Sneha Kulkarni,CSE-6A,Present,Face Recognition,+91 98451 23452
+8,2026-10-08,09:44:22,2TG21CS006,Ananya Joshi,CSE-8A,Present,Face Recognition,+91 98451 23456
+10,2026-10-08,09:42:58,2TG21CS002,Sneha Kulkarni,CSE-6A,Present,Face Recognition,+91 98451 23452
+11,2026-10-08,09:41:48,2TG21CS008,Kavya Angadi,CSE-6B,Present,Face Recognition,+91 98451 23458
+9,2026-10-08,09:22:44,2TG21CS004,Pooja Nayak,CSE-6B,Present,Face Recognition,+91 98451 23454
+5,2026-10-07,09:53:40,2TG21CS002,Sneha Kulkarni,CSE-6A,Present,Face Recognition,+91 98451 23452
+1,2026-10-07,09:51:28,2TG21CS001,Rahul Patil,CSE-6A,Present,Face Recognition,+91 98451 23451
+3,2026-10-07,09:50:18,2TG21CS007,Darshan Bellad,CSE-6A,Present,Face Recognition,+91 98451 23457
+2,2026-10-07,09:24:12,2TG21CS006,Ananya Joshi,CSE-8A,Present,Face Recognition,+91 98451 23456
+6,2026-10-07,09:17:44,2TG21CS003,Amit Deshmukh,CSE-6B,Present,Face Recognition,+91 98451 23453
+4,2026-10-07,09:17:44,2TG21CS004,Pooja Nayak,CSE-6B,Present,Face Recognition,+91 98451 23454
+7,2026-10-07,09:14:38,2TG21CS008,Kavya Angadi,CSE-6B,Present,Face Recognition,+91 98451 23458

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Student - {{ student.name }} | TCE Gadag{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">Edit Student Record</h4>
+            <p class="text-muted small mb-0">Update academic information or re-capture facial biometrics for <strong>{{ student.name }}</strong> ({{ student.roll_number }}).</p>
+        </div>
+        <a href="{{ url_for('students_list') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
+            <i class="bi bi-arrow-left me-1"></i> Back to Directory
+        </a>
+    </div>
+
+    <form method="POST" action="{{ url_for('edit_student', student_id=student.id) }}" enctype="multipart/form-data">
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="fw-bold text-dark mb-0">Student Profile Information</h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" name="name" value="{{ student.name }}" class="form-control bg-light" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Roll / USN Number <span class="text-danger">*</span></label>
+                                <input type="text" name="roll_number" value="{{ student.roll_number }}" class="form-control bg-light text-uppercase font-monospace" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Class & Section <span class="text-danger">*</span></label>
+                                <select name="class_section" class="form-select bg-light" required>
+                                    <option value="CSE-6A" {% if student.class_section == 'CSE-6A' %}selected{% endif %}>CSE - 6th Sem Sec A</option>
+                                    <option value="CSE-6B" {% if student.class_section == 'CSE-6B' %}selected{% endif %}>CSE - 6th Sem Sec B</option>
+                                    <option value="CSE-8A" {% if student.class_section == 'CSE-8A' %}selected{% endif %}>CSE - 8th Sem Sec A</option>
+                                    <option value="CSE-8B" {% if student.class_section == 'CSE-8B' %}selected{% endif %}>CSE - 8th Sem Sec B</option>
+                                    <option value="CSE-4A" {% if student.class_section == 'CSE-4A' %}selected{% endif %}>CSE - 4th Sem Sec A</option>
+                                    <option value="CSE-4B" {% if student.class_section == 'CSE-4B' %}selected{% endif %}>CSE - 4th Sem Sec B</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted">Contact Phone</label>
+                                <input type="tel" name="contact" value="{{ student.contact or '' }}" class="form-control bg-light">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold text-muted">Email Address</label>
+                                <input type="email" name="email" value="{{ student.email or '' }}" class="form-control bg-light">
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top d-flex gap-2">
+                            <button type="submit" class="btn btn-primary px-4 rounded-3 fw-semibold">
+                                <i class="bi bi-save me-1"></i> Update Student
+                            </button>
+                            <a href="{{ url_for('students_list') }}" class="btn btn-light px-3 rounded-3">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Face Model & Update -->
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="fw-bold text-dark mb-0">Biometric Profile Photo</h6>
+                    </div>
+                    <div class="card-body p-4 text-center">
+                        <div class="mb-3">
+                            {% if student.photo_path %}
+                                <img src="{{ url_for('static', filename=student.photo_path) }}" class="rounded-4 shadow-sm border border-3 border-light" style="width: 140px; height: 140px; object-fit: cover;">
+                                <div class="mt-2">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-shield-check me-1"></i> 128-d Vector Enrolled
+                                    </span>
+                                </div>
+                            {% else %}
+                                <div class="student-avatar-placeholder mx-auto" style="width: 120px; height: 120px; font-size: 2.5rem;">
+                                    {{ student.name[0] }}
+                                </div>
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle mt-2">
+                                    Missing Face Model
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="border rounded-3 p-3 bg-light text-start mt-3">
+                            <label class="form-label small fw-semibold text-muted mb-1">Upload New Face Image (Optional)</label>
+                            <input type="file" name="photo_file" class="form-control form-control-sm bg-white" accept="image/*">
+                            <span class="text-muted" style="font-size: 0.72rem;">Leave empty to retain existing face model.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

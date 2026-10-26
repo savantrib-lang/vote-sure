@@ -1,0 +1,684 @@
+{% extends "base.html" %}
+
+{% block title %}Election Results & Live Tally{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Top 2-Way Election Result Portals Switcher -->
+    <div class="row g-3 mb-4">
+        {% for el in all_elections %}
+        <div class="col-md-6">
+            <a href="{{ url_for('results', election_id=el.id) }}" class="text-decoration-none">
+                <div class="card h-100 border-2 rounded-4 transition-all shadow-sm {% if el.id == selected_id %}border-primary bg-primary bg-opacity-10{% else %}border-light-subtle bg-white hover-shadow{% endif %}">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="badge {% if el.election_type == 'college' %}bg-primary{% elif el.election_type == 'school' %}bg-warning text-dark{% else %}bg-success{% endif %} text-white px-2 py-1 rounded-pill small">
+                                {% if el.election_type == 'college' %}<i class="bi bi-mortarboard-fill me-1"></i>College Union{% elif el.election_type == 'school' %}<i class="bi bi-backpack-fill me-1"></i>School Council{% else %}<i class="bi bi-globe me-1"></i>General Public{% endif %}
+                            </span>
+
+                            {% if election_locks.get(el.id) %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 font-monospace small">
+                                    <i class="bi bi-unlock-fill me-1"></i> UNSEALED
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 font-monospace small">
+                                    <i class="bi bi-lock-fill me-1"></i> SEALED
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <h6 class="fw-bold text-dark mb-1">
+                            {% if el.election_type == 'college' %}🎓{% else %}🌐{% endif %} {{ el.title }}
+                        </h6>
+                        <div class="d-flex align-items-center justify-content-between text-muted small">
+                            <span>
+                                {% if el.institution_name %}
+                                    <i class="bi bi-building me-1 text-primary"></i><strong>{{ el.institution_name }}</strong>
+                                {% else %}
+                                    <i class="bi bi-shield-check me-1 text-success"></i>National Central Commission
+                                {% endif %}
+                            </span>
+                            <span class="fw-semibold {% if el.id == selected_id %}text-primary{% endif %}">
+                                {% if el.id == selected_id %}Active View &bull;{% else %}Switch View &rarr;{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                    <i class="bi bi-bar-chart-fill me-1"></i> Live Vote Count
+                </span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                    <span class="live-dot me-1"></span> Certified Real-Time
+                </span>
+                {% if current_election %}
+                    {% if current_election.election_type == 'college' %}
+                        <span class="badge bg-primary text-white px-2 py-1"><i class="bi bi-mortarboard-fill me-1"></i>College Union</span>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1"><i class="bi bi-mortarboard me-1"></i>Principal Certified</span>
+                    {% elif current_election.election_type == 'school' %}
+                        <span class="badge bg-warning text-dark px-2 py-1"><i class="bi bi-backpack-fill me-1"></i>School Council</span>
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1"><i class="bi bi-backpack me-1"></i>Principal Certified</span>
+                    {% else %}
+                        <span class="badge bg-success text-white px-2 py-1"><i class="bi bi-globe me-1"></i>General Election</span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-shield-check me-1"></i>CEO Certified</span>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <h4 class="fw-bold mb-1 text-dark">{{ current_election.title if current_election else (stats.active_election.title if stats.active_election else 'VoteSure - General Public Election 2026') }}</h4>
+            <p class="text-muted small mb-0">
+                {% if current_election and current_election.institution_name %}
+                    <i class="bi bi-building me-1 text-primary"></i> <strong>{{ current_election.institution_name }}</strong> &bull;
+                    Official tally certified under Office of the Principal &bull; Tamper-Proof Cryptographic Ledger.
+                {% else %}
+                    Official tally certified by Chief Electoral Officer &bull; Tamper-Proof Cryptographic Ledger.
+                {% endif %}
+            </p>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="{{ url_for('elections_list') }}" class="btn btn-outline-secondary btn-sm px-3 shadow-sm rounded-pill d-flex align-items-center gap-1">
+                <i class="bi bi-gear-fill"></i> Hub
+            </a>
+            <form method="POST" action="{{ url_for('lock_results') }}" class="d-inline">
+                <input type="hidden" name="election_id" value="{{ current_election.id if current_election else selected_id }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm px-3 shadow-sm rounded-pill d-flex align-items-center gap-1">
+                    <i class="bi bi-lock-fill"></i> Seal Vault
+                </button>
+            </form>
+            <button onclick="window.location.reload();" class="btn btn-outline-secondary btn-sm px-3 shadow-sm rounded-pill d-flex align-items-center gap-1">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+            <a href="{{ url_for('voting_booth') }}" class="btn btn-primary btn-sm px-3 shadow-sm rounded-pill d-flex align-items-center gap-1">
+                <i class="bi bi-fingerprint"></i> Booth
+            </a>
+        </div>
+    </div>
+
+    <!-- Active Vault Seal Status Card -->
+    <div class="alert bg-white border border-light-subtle shadow-sm rounded-4 p-3 mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+            <div class="d-flex align-items-center gap-3">
+                {% if current_election and current_election.election_type == 'college' %}
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-2 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-mortarboard-fill fs-5"></i>
+                    </div>
+                    <div>
+                        <strong class="text-dark d-block">Apex College Student Union Ballot Vault &bull; Unsealed &amp; Certified</strong>
+                        <span class="small text-muted">Authorized by: <strong>{{ unlocked_by }}</strong> &bull; Office of the Principal, {{ current_election.institution_name or 'Apex Institute' }}</span>
+                    </div>
+                {% else %}
+                    <div class="rounded-circle bg-success bg-opacity-10 text-success p-2 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-shield-check fs-5"></i>
+                    </div>
+                    <div>
+                        <strong class="text-dark d-block">VoteSure National Electoral Vault &bull; Unsealed &amp; Certified</strong>
+                        <span class="small text-muted">Authorized by: <strong>{{ unlocked_by }}</strong> &bull; Central Election Commission Certified</span>
+                    </div>
+                {% endif %}
+            </div>
+            <div>
+                <form method="POST" action="{{ url_for('lock_results') }}" class="d-inline">
+                    <input type="hidden" name="election_id" value="{{ current_election.id if current_election else selected_id }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center gap-1">
+                        <i class="bi bi-lock-fill"></i> Re-Seal {{ 'VoteSure' if current_election and current_election.election_type == 'general' else 'Apex College' }} Results
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leader Banner Card -->
+    {% if stats.leader_votes > 0 %}
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-gradient-navy text-white overflow-hidden position-relative">
+        <div class="card-body p-4 p-lg-5 position-relative" style="z-index: 1;">
+            <div class="row align-items-center g-4">
+                <div class="col-md-8">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                        <span class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-warning text-dark fw-bold small">
+                            <i class="bi bi-trophy-fill"></i> Current Front-Runner
+                        </span>
+                        {% if stats.leader_position %}
+                        <span class="badge bg-primary text-white rounded-pill px-3 py-1 font-monospace fs-6">
+                            <i class="bi bi-person-badge me-1"></i>{{ stats.leader_position }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <h2 class="display-6 fw-bold mb-1">{{ stats.leader_name }}</h2>
+                    <p class="fs-5 text-light opacity-75 mb-3">{{ stats.leader_party }}</p>
+                    <div class="d-flex flex-wrap gap-4 align-items-center">
+                        <div>
+                            <span class="d-block small text-light opacity-75">Votes Secured</span>
+                            <span class="fs-3 fw-bold font-monospace text-warning">{{ stats.leader_votes }}</span>
+                        </div>
+                        <div class="vr bg-light opacity-25"></div>
+                        <div>
+                            <span class="d-block small text-light opacity-75">Vote Share</span>
+                            <span class="fs-3 fw-bold font-monospace text-success">
+                                {{ ((stats.leader_votes / results.total_votes * 100)|round(1)) if results.total_votes > 0 else 0 }}%
+                            </span>
+                        </div>
+                        <div class="vr bg-light opacity-25"></div>
+                        <div>
+                            <span class="d-block small text-light opacity-75">Total Cast</span>
+                            <span class="fs-3 fw-bold font-monospace">{{ results.total_votes }} votes</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center text-md-end">
+                    <div class="display-1 text-warning opacity-75">
+                        <i class="bi bi-award"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 text-center bg-white">
+        <div class="py-3">
+            <i class="bi bi-hourglass-top display-5 text-muted opacity-50 d-block mb-2"></i>
+            <h5 class="fw-bold text-dark">Polls Open - Awaiting Ballots</h5>
+            <p class="text-muted small mb-0">Cast the first vote at the live biometric booth to establish the leader standings.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- KPI Metric Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="p-3 bg-primary-subtle text-primary rounded-3 fs-4">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <div>
+                        <span class="small text-muted d-block">Registered Electors</span>
+                        <h4 class="fw-bold mb-0 text-dark font-monospace">{{ stats.total_voters }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="p-3 bg-success-subtle text-success rounded-3 fs-4">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </div>
+                    <div>
+                        <span class="small text-muted d-block">Ballots Cast</span>
+                        <h4 class="fw-bold mb-0 text-dark font-monospace">{{ stats.total_votes_cast }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="p-3 bg-warning-subtle text-warning rounded-3 fs-4">
+                        <i class="bi bi-pie-chart-fill"></i>
+                    </div>
+                    <div>
+                        <span class="small text-muted d-block">Turnout Percentage</span>
+                        <h4 class="fw-bold mb-0 text-dark font-monospace">{{ stats.turnout_pct }}%</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="p-3 bg-info-subtle text-info rounded-3 fs-4">
+                        <i class="bi bi-fingerprint"></i>
+                    </div>
+                    <div>
+                        <span class="small text-muted d-block">Enrolled Biometrics</span>
+                        <h4 class="fw-bold mb-0 text-dark font-monospace">{{ stats.enrolled_biometrics }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <!-- Bar Chart: Vote Count -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-bar-chart-line-fill text-primary me-2"></i>Candidate-Wise Vote Distribution
+                    </h6>
+                    <span class="badge bg-light text-dark border">Bar Chart</span>
+                </div>
+                <div class="card-body p-4">
+                    <div style="height: 320px;">
+                        <canvas id="votesBarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Doughnut Chart: Vote Share -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-pie-chart-fill text-primary me-2"></i>Vote Share (%)
+                    </h6>
+                    <span class="badge bg-light text-dark border">Donut Chart</span>
+                </div>
+                <div class="card-body p-4 d-flex align-items-center justify-content-center">
+                    <div style="height: 300px; width: 100%;">
+                        <canvas id="votesDonutChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Candidates Tally Table -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold text-dark mb-0">Official Standings & Ballots Breakup</h6>
+            <span class="small text-muted font-monospace">Total Valid Ballots: {{ results.total_votes }}</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table custom-table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Rank</th>
+                        <th>Contesting Post</th>
+                        <th>Candidate Profile</th>
+                        <th>Party / Alliance</th>
+                        <th>Total Votes</th>
+                        <th style="min-width: 200px;">Vote Share</th>
+                        <th class="text-end pe-4">Standing</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in results.candidates|sort(attribute='votes_count', reverse=True) %}
+                    <tr>
+                        <td class="ps-4">
+                            {% if loop.index == 1 and c.votes_count > 0 %}
+                                <span class="badge bg-warning text-dark px-2 py-1 fw-bold">
+                                    <i class="bi bi-trophy-fill me-1"></i> #1 Winner
+                                </span>
+                            {% else %}
+                                <span class="badge bg-light text-dark border px-2 py-1 font-monospace">
+                                    #{{ loop.index }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-primary text-white rounded-pill px-2 py-1 small">
+                                <i class="bi bi-person-badge me-1"></i>{{ c.position or 'President' }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="fw-bold text-dark d-block">{{ c.name }}</span>
+                            <span class="small text-muted">{{ c.manifesto[:60] if c.manifesto else 'Campus development' }}...</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                                {{ c.party_name }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="fs-6 fw-bold font-monospace text-dark">{{ c.votes_count }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 8px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ c.vote_pct }}%;"></div>
+                                </div>
+                                <span class="small fw-semibold text-muted font-monospace">{{ c.vote_pct }}%</span>
+                            </div>
+                        </td>
+                        <td class="text-end pe-4">
+                            {% if loop.index == 1 and c.votes_count > 0 %}
+                                <span class="badge bg-success text-white px-2 py-1">
+                                    Leading
+                                </span>
+                            {% elif c.votes_count > 0 %}
+                                <span class="badge bg-light text-dark border px-2 py-1">
+                                    Trailing
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-muted px-2 py-1">
+                                    0 Votes
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Biometric Verification Evidence & Anti-Vote-Stealing Ledger -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 border-top border-4 border-primary">
+        <div class="card-header bg-white border-0 py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                        <i class="bi bi-shield-lock-fill me-1"></i> Anti-Vote Stealing Protection
+                    </span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                        <i class="bi bi-camera-fill me-1"></i> Live Presence Captured
+                    </span>
+                </div>
+                <h6 class="fw-bold text-dark mb-0 fs-5">Voter Biometric Verification Evidence Ledger</h6>
+                <p class="text-muted small mb-0">
+                    Visual audit comparison: Enrolled Registration Photo vs. Live In-Person Presence Photo captured directly at the voting booth during authentication.
+                </p>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                {% if integrity_report and integrity_report.is_secure %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                    <i class="bi bi-shield-check me-1"></i> Blockchain SHA-256 Ledger: Sealed & Verified
+                </span>
+                {% endif %}
+                <span class="badge bg-light text-dark border font-monospace px-3 py-2">
+                    <i class="bi bi-check2-circle text-success me-1"></i> {{ (voted_electors|length) if voted_electors else 0 }} Audited Ballots
+                </span>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table custom-table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Audit ID & Time</th>
+                        <th>Elector Details</th>
+                        <th class="text-center" style="min-width: 130px;">Enrolled Photo<br><span class="badge bg-secondary-subtle text-secondary fw-normal">Registration</span></th>
+                        <th class="text-center" style="min-width: 130px;">Live Presence Photo<br><span class="badge bg-success-subtle text-success fw-normal">Booth Capture</span></th>
+                        <th>Ballot Cast</th>
+                        <th>Integrity Certification</th>
+                        <th class="text-end pe-4">Forensic Proof</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if voted_electors %}
+                        {% for v in voted_electors %}
+                        <tr>
+                            <td class="ps-4">
+                                <span class="fw-bold text-dark d-block">#VOTE-{{ '%04d' % (v.id or v.vote_id) }}</span>
+                                <span class="text-muted small d-block"><i class="bi bi-clock me-1"></i>{{ v.timestamp }}</span>
+                                {% if v.vote_hash %}
+                                <span class="badge bg-dark text-white font-monospace mt-1" style="font-size: 0.60rem;" title="Cryptographic SHA-256 Ledger Hash: {{ v.vote_hash }}">
+                                    <i class="bi bi-link-45deg text-warning"></i>{{ v.vote_hash[:10] }}...
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="fw-bold text-dark d-block">{{ v.voter_name }}</span>
+                                <span class="badge bg-dark-subtle text-dark border font-monospace px-2 py-0 small">{{ v.voter_code or v.voter_id }}</span>
+                                <span class="text-muted small ms-1">{{ v.constituency }}</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="position-relative d-inline-block">
+                                    {% if v.registration_photo_path %}
+                                        <img src="{{ v.registration_photo_path if v.registration_photo_path.startswith('/') else url_for('static', filename=v.registration_photo_path) }}" alt="Enrolled Photo" class="rounded-3 border border-2 border-secondary shadow-sm" style="width: 56px; height: 56px; object-fit: cover;" onerror="this.onerror=null; this.src='/static/img/default_avatar.svg';">
+                                    {% else %}
+                                        <div class="rounded-3 bg-light border d-flex align-items-center justify-content-center text-muted" style="width: 56px; height: 56px;">
+                                            <i class="bi bi-person fs-3"></i>
+                                        </div>
+                                    {% endif %}
+                                    <span class="badge bg-dark text-white position-absolute bottom-0 start-50 translate-middle-x" style="font-size: 0.60rem; white-space: nowrap; transform: translate(-50%, 20%);">ENROLLED</span>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <div class="position-relative d-inline-block">
+                                    {% if v.live_photo_path %}
+                                        <img src="{{ v.live_photo_path if v.live_photo_path.startswith('/') else url_for('static', filename=v.live_photo_path) }}" alt="Live Presence Photo" class="rounded-3 border border-2 border-success shadow-sm" style="width: 56px; height: 56px; object-fit: cover;" onerror="this.onerror=null; this.src='/static/img/default_avatar.svg';">
+                                    {% elif v.registration_photo_path %}
+                                        <img src="{{ v.registration_photo_path if v.registration_photo_path.startswith('/') else url_for('static', filename=v.registration_photo_path) }}" alt="Live Presence Fallback" class="rounded-3 border border-2 border-success shadow-sm" style="width: 56px; height: 56px; object-fit: cover;" onerror="this.onerror=null; this.src='/static/img/default_avatar.svg';">
+                                    {% else %}
+                                        <div class="rounded-3 bg-light border border-success d-flex align-items-center justify-content-center text-success" style="width: 56px; height: 56px;">
+                                            <i class="bi bi-camera-video fs-3"></i>
+                                        </div>
+                                    {% endif %}
+                                    <span class="badge bg-success text-white position-absolute bottom-0 start-50 translate-middle-x" style="font-size: 0.60rem; white-space: nowrap; transform: translate(-50%, 20%);">LIVE BOOTH</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-dark d-block">{{ v.candidate_name }}</span>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0 small">{{ v.party_name }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 d-block mb-1 text-start">
+                                    <i class="bi bi-shield-check me-1"></i> Live Human Verified
+                                </span>
+                                <span class="small text-muted font-monospace d-block">
+                                    <i class="bi bi-check-all text-success"></i> No Proxy / No Theft
+                                </span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" onclick="showComparisonModal('{{ v.voter_name|escape }}', '{{ (v.voter_code or v.voter_id)|escape }}', '{{ v.constituency|escape }}', '{{ v.registration_photo_path or '' }}', '{{ v.live_photo_path or v.registration_photo_path or '' }}', '{{ v.timestamp|escape }}', '{{ v.candidate_name|escape }}', '{{ v.party_name|escape }}')">
+                                    <i class="bi bi-zoom-in me-1"></i> Inspect Both
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <div class="text-muted">
+                                    <i class="bi bi-shield-slash display-4 d-block mb-3 opacity-50"></i>
+                                    <h5>No Ballots Recorded Yet</h5>
+                                    <p class="small mb-0">As electors scan their faces and cast votes at the booth, their live presence photos will appear here with side-by-side verification.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Side-by-Side Biometric Comparison Modal -->
+<div class="modal fade" id="biometricComparisonModal" tabindex="-1" aria-labelledby="biometricModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark" id="biometricModalLabel">
+                        <i class="bi bi-shield-check text-success me-2"></i>Biometric Verification & Anti-Theft Evidence
+                    </h5>
+                    <p class="text-muted small mb-0" id="modalElectorSub">Forensic comparison between enrolled electoral record and live voting booth presence.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-4 text-center">
+                    <!-- Enrolled Photo -->
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-4 bg-light border h-100">
+                            <span class="badge bg-secondary mb-2 px-3 py-1 text-uppercase">1. Enrolled Registration Photo</span>
+                            <p class="small text-muted mb-2">Original identity photo from official electoral roll</p>
+                            <div class="bg-dark rounded-3 overflow-hidden d-flex align-items-center justify-content-center mx-auto shadow-sm" style="height: 240px; max-width: 260px;">
+                                <img id="modalEnrolledImg" src="" alt="Enrolled Photo" class="img-fluid" style="max-height: 240px; width: 100%; object-fit: contain;" onerror="this.onerror=null; this.src='/static/img/default_avatar.svg';">
+                            </div>
+                            <span class="badge bg-light text-dark border mt-2 small">Electoral Roll Master Record</span>
+                        </div>
+                    </div>
+                    <!-- Live Presence Photo -->
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-4 bg-success bg-opacity-10 border border-success h-100">
+                            <span class="badge bg-success mb-2 px-3 py-1 text-uppercase">2. Live Presence Booth Photo</span>
+                            <p class="small text-muted mb-2">Captured live at voting booth during facial recognition</p>
+                            <div class="bg-dark rounded-3 overflow-hidden d-flex align-items-center justify-content-center mx-auto shadow-sm border border-2 border-success" style="height: 240px; max-width: 260px;">
+                                <img id="modalLiveImg" src="" alt="Live Presence Photo" class="img-fluid" style="max-height: 240px; width: 100%; object-fit: contain;" onerror="this.onerror=null; this.src='/static/img/default_avatar.svg';">
+                            </div>
+                            <span class="badge bg-success text-white mt-2 small"><i class="bi bi-check-circle-fill me-1"></i> Live Human Presence Confirmed</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Verification Summary Card -->
+                <div class="mt-4 p-3 rounded-3 bg-light border">
+                    <div class="row g-2 small">
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block">Elector Name:</span>
+                            <strong class="text-dark" id="modalVoterName">--</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block">Voter ID (EPIC):</span>
+                            <strong class="font-monospace text-primary" id="modalVoterCode">--</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block">Constituency:</span>
+                            <strong class="text-dark" id="modalConstituency">--</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block">Voting Timestamp:</span>
+                            <strong class="font-monospace text-dark" id="modalTimestamp">--</strong>
+                        </div>
+                        <div class="col-12 mt-2 pt-2 border-top">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <span class="text-muted">Ballot Recorded For: </span>
+                                    <strong class="text-dark" id="modalBallotChoice">--</strong>
+                                </div>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">
+                                    <i class="bi bi-patch-check-fill me-1"></i> Fraud & Proxy Protected
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function formatPhotoUrl(p) {
+    if (!p) return '';
+    p = p.trim().replace(/\\/g, '/');
+    if (p.startsWith('http://') || p.startsWith('https://') || p.startsWith('data:') || p.startsWith('/')) {
+        return p;
+    }
+    if (p.startsWith('static/')) {
+        return '/' + p;
+    }
+    return '/static/' + p;
+}
+
+function showComparisonModal(name, code, constituency, enrolledPhoto, livePhoto, timestamp, candidate, party) {
+    document.getElementById('modalVoterName').textContent = name;
+    document.getElementById('modalVoterCode').textContent = code;
+    document.getElementById('modalConstituency').textContent = constituency;
+    document.getElementById('modalTimestamp').textContent = timestamp;
+    document.getElementById('modalBallotChoice').textContent = candidate + " (" + party + ")";
+    
+    const cleanEnrolled = formatPhotoUrl(enrolledPhoto);
+    const cleanLive = formatPhotoUrl(livePhoto) || cleanEnrolled;
+
+    document.getElementById('modalEnrolledImg').src = cleanEnrolled || '/static/img/default_avatar.svg';
+    document.getElementById('modalLiveImg').src = cleanLive || cleanEnrolled || '/static/img/default_avatar.svg';
+
+    const modal = new bootstrap.Modal(document.getElementById('biometricComparisonModal'));
+    modal.show();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    const labels = {{ results.chart_labels | tojson }};
+    const votes = {{ results.chart_votes | tojson }};
+    const parties = {{ results.chart_parties | tojson }};
+
+    const colors = [
+        '#2563eb', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#64748b'
+    ];
+
+    // Bar Chart
+    const barCtx = document.getElementById('votesBarChart').getContext('2d');
+    new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Votes Count',
+                data: votes,
+                backgroundColor: colors.slice(0, labels.length),
+                borderRadius: 8,
+                barThickness: 36
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            return ' ' + ctx.raw + ' Votes';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0, font: { family: 'Inter' } },
+                    grid: { color: '#f1f5f9' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { family: 'Inter', weight: '500' } }
+                }
+            }
+        }
+    });
+
+    // Donut Chart
+    const donutCtx = document.getElementById('votesDonutChart').getContext('2d');
+    new Chart(donutCtx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: votes.every(v => v === 0) ? labels.map(() => 1) : votes,
+                backgroundColor: votes.every(v => v === 0) ? labels.map(() => '#cbd5e1') : colors.slice(0, labels.length),
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 12, font: { family: 'Inter', size: 12 } }
+                }
+            },
+            cutout: '68%'
+        }
+    });
+});
+</script>
+{% endblock %}

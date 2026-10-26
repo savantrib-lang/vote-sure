@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics & Attendance Insights - TCE Gadag{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">Attendance Analytics & Insights</h4>
+            <p class="text-muted small mb-0">Visual performance charts, multi-day trends, and departmental distribution.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('export_attendance') }}" class="btn btn-outline-primary btn-sm px-3 rounded-pill">
+                <i class="bi bi-download me-1"></i> Export Full Dataset
+            </a>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <!-- 7-Day Attendance Trend Chart -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="fw-bold text-dark mb-0">Daily Attendance Trend (Past 7 Recorded Days)</h6>
+                    <span class="text-muted small">Number of students recognized present per session</span>
+                </div>
+                <div class="card-body p-4">
+                    <canvas id="attendanceTrendChart" style="max-height: 280px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Class Distribution Chart -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="fw-bold text-dark mb-0">Students by Academic Section</h6>
+                    <span class="text-muted small">CSE Department Class Distribution</span>
+                </div>
+                <div class="card-body p-4 d-flex align-items-center justify-content-center">
+                    <canvas id="classDistChart" style="max-height: 240px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Second Row: Today's Class Breakdown -->
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="fw-bold text-dark mb-0">Today's Class Attendance Breakdown</h6>
+                    <span class="text-muted small">Present students count by section on {{ stats.today_date }}</span>
+                </div>
+                <div class="card-body p-4">
+                    <canvas id="todayClassChart" style="max-height: 260px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="fw-bold text-dark mb-0">System Summary Metrics</h6>
+                </div>
+                <div class="card-body p-4">
+                    <ul class="list-group list-group-flush small">
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-light">
+                            <span class="text-muted">Total Registered Students</span>
+                            <span class="fw-bold text-dark fs-6">{{ stats.total_students }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-light">
+                            <span class="text-muted">Biometric Models Enrolled</span>
+                            <span class="badge bg-primary fs-6">{{ stats.enrolled_faces }} / {{ stats.total_students }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-light">
+                            <span class="text-muted">Today's Attendance Rate</span>
+                            <span class="fw-bold text-success fs-6">{{ stats.att_rate }}%</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-light">
+                            <span class="text-muted">Historical Record Logs</span>
+                            <span class="fw-bold text-secondary fs-6">{{ stats.total_records }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const trendData = {{ analytics.trend|tojson }};
+const classDistData = {{ analytics.class_distribution|tojson }};
+const todayClassData = {{ analytics.today_class_attendance|tojson }};
+
+// 1. Trend Chart
+const trendCtx = document.getElementById('attendanceTrendChart').getContext('2d');
+new Chart(trendCtx, {
+    type: 'line',
+    data: {
+        labels: trendData.length > 0 ? trendData.map(d => d.date) : ['Today'],
+        datasets: [{
+            label: 'Students Present',
+            data: trendData.length > 0 ? trendData.map(d => d.count) : [{{ stats.today_present }}],
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 5,
+            pointBackgroundColor: '#2563eb'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { precision: 0 }
+            }
+        }
+    }
+});
+
+// 2. Class Distribution Doughnut Chart
+const classCtx = document.getElementById('classDistChart').getContext('2d');
+new Chart(classCtx, {
+    type: 'doughnut',
+    data: {
+        labels: classDistData.map(d => d.class_section),
+        datasets: [{
+            data: classDistData.map(d => d.count),
+            backgroundColor: ['#2563eb', '#38bdf8', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+
+// 3. Today Class Attendance Bar Chart
+const todayClassCtx = document.getElementById('todayClassChart').getContext('2d');
+new Chart(todayClassCtx, {
+    type: 'bar',
+    data: {
+        labels: todayClassData.map(d => d.class_section),
+        datasets: [{
+            label: 'Present Students',
+            data: todayClassData.map(d => d.present),
+            backgroundColor: '#10b981',
+            borderRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { precision: 0 }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

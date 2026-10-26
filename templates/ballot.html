@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block title %}Official Electronic Ballot - Smart E-Voting | VoteSure{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Authenticated Voter Security Banner -->
+    <div class="card border-0 shadow-sm rounded-4 bg-navy text-white mb-4">
+        <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="avatar-circle" style="width: 56px; height: 56px; font-size: 1.6rem; background-color: #10b981;">
+                    <i class="bi bi-person-check-fill"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h4 class="fw-bold mb-0 text-white">{{ voter.name }}</h4>
+                        <span class="badge bg-success font-monospace">VERIFIED VOTER</span>
+                    </div>
+                    <span class="text-white-50 small d-block mt-1">
+                        Voter ID: <strong class="text-info font-monospace">{{ voter.voter_id }}</strong> | Constituency: <strong>{{ voter.constituency }}</strong>
+                    </span>
+                </div>
+            </div>
+            <div class="text-md-end">
+                <span class="badge bg-light text-dark font-monospace px-3 py-2 shadow-sm">
+                    <i class="bi bi-shield-lock-fill text-success me-1"></i> Single-Use Ballot Token Active
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ballot Instructions -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+        <div>
+            <h5 class="fw-bold text-dark mb-0">Official Electronic Voting Machine (EVM) Ballot</h5>
+            <span class="text-muted small">Select your preferred candidate by clicking their card or button, then click <strong>"SUBMIT OF VOTE"</strong> below.</span>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            {% if election and election.election_type == 'college' %}
+                <span class="badge bg-primary px-3 py-2 font-monospace"><i class="bi bi-mortarboard-fill me-1"></i>College Union</span>
+            {% elif election and election.election_type == 'school' %}
+                <span class="badge bg-warning text-dark px-3 py-2 font-monospace"><i class="bi bi-backpack-fill me-1"></i>School Council</span>
+            {% else %}
+                <span class="badge bg-success px-3 py-2 font-monospace"><i class="bi bi-globe me-1"></i>General Election</span>
+            {% endif %}
+            <span class="badge bg-dark px-3 py-2 font-monospace">
+                {{ election.title if election else "VoteSure - General Public Election 2026" }}
+            </span>
+        </div>
+    </div>
+
+    <!-- EVM Candidate List Wrapped in Form -->
+    <form id="officialBallotForm" action="{{ url_for('cast_vote') }}" method="POST">
+        <input type="hidden" name="election_id" id="electionIdInput" value="{{ election.id if election else 1 }}">
+        <input type="hidden" name="candidate_id" id="selectedCandidateInput" value="">
+
+        <div class="row g-3" id="candidateListContainer">
+            {% if candidates %}
+                {% for c in candidates %}
+                <div class="col-12">
+                    <div class="candidate-card p-3 p-md-4 shadow-sm d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3"
+                         id="candidateCard-{{ c.id }}"
+                         onclick="selectCandidate({{ c.id }}, '{{ c.name|escape }}', '{{ c.party_name|escape }}', '{{ (c.position or 'Candidate')|escape }}')">
+                        
+                        <div class="d-flex align-items-center gap-3">
+                            <!-- Radio Selection Indicator -->
+                            <div class="form-check p-0 m-0 d-flex align-items-center">
+                                <input class="form-check-input candidate-radio m-0"
+                                       type="radio"
+                                       name="candidate_choice"
+                                       id="radio-{{ c.id }}"
+                                       value="{{ c.id }}"
+                                       style="width: 24px; height: 24px; cursor: pointer;"
+                                       onchange="selectCandidate({{ c.id }}, '{{ c.name|escape }}', '{{ c.party_name|escape }}', '{{ (c.position or 'Candidate')|escape }}')">
+                            </div>
+
+                            <div class="font-monospace fw-bold fs-4 text-muted" style="width: 32px;">
+                                {{ loop.index }}.
+                            </div>
+                            
+                            <div class="voter-avatar-placeholder bg-blue-subtle" style="width: 54px; height: 54px; font-size: 1.4rem;">
+                                {{ c.name[0] }}
+                            </div>
+
+                            <div>
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <h5 class="fw-bold text-dark mb-0">{{ c.name }}</h5>
+                                    <span class="badge bg-primary text-white rounded-pill px-2 py-0" style="font-size: 0.78rem;">
+                                        <i class="bi bi-person-badge me-1"></i>{{ c.position or 'Candidate' }}
+                                    </span>
+                                </div>
+                                <span class="badge bg-light text-primary border fw-semibold mt-1 me-2">{{ c.party_name }}</span>
+                                <p class="text-muted small mb-0 mt-1" style="max-width: 650px;">
+                                    {{ c.manifesto or 'Platform dedicated to campus development, tech innovation, and student representation.' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="text-end flex-shrink-0 d-flex align-items-center gap-3 justify-content-between justify-content-md-end w-100 w-md-auto mt-2 mt-md-0">
+                            <!-- EVM Indicator Light -->
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="evm-lamp" id="lamp-{{ c.id }}" style="display: inline-block; width: 16px; height: 16px; border-radius: 50%; background-color: #cbd5e1; border: 2px solid #94a3b8; transition: background-color 0.2s;"></span>
+                                <span class="small text-muted font-monospace d-none d-sm-inline" id="lampText-{{ c.id }}">READY</span>
+                            </div>
+
+                            <!-- Cast Vote EVM Button -->
+                            <button type="button" class="btn btn-evm-vote d-flex align-items-center gap-2"
+                                    id="btnVote-{{ c.id }}"
+                                    onclick="event.stopPropagation(); selectAndConfirmVote({{ c.id }}, '{{ c.name|escape }}', '{{ c.party_name|escape }}', '{{ (c.position or 'Candidate')|escape }}')">
+                                <i class="bi bi-check2-circle fs-5"></i> VOTE
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12 text-center py-5">
+                    <p class="text-muted">No candidates nominated yet for this election.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Official Vote Submission Console with Prominent Submit Button -->
+        <div class="card border-0 shadow-lg rounded-4 mt-4 overflow-hidden border-2 border-primary bg-white" id="submitVoteConsoleCard">
+            <div class="card-header bg-navy text-white py-3 px-4 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-white d-flex align-items-center gap-2">
+                    <i class="bi bi-fingerprint text-success fs-5"></i> Official Ballot Submission Terminal
+                </h6>
+                <span class="badge bg-success bg-opacity-75 font-monospace px-3 py-2">
+                    <i class="bi bi-shield-lock-fill me-1"></i> Biometric Authenticated
+                </span>
+            </div>
+
+            <div class="card-body p-4">
+                <!-- Selection Status Display -->
+                <div class="p-3 bg-light rounded-3 mb-4 border d-flex flex-column flex-md-row align-items-center justify-content-between gap-3 text-start" id="selectionSummaryBox">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase d-block mb-1">Current Ballot Choice:</span>
+                        <h4 class="fw-bold text-dark mb-0" id="selectedCandidateNameText">
+                            <span class="text-danger small">
+                                <i class="bi bi-hand-index-thumb me-1"></i> Click any candidate above to select your vote
+                            </span>
+                        </h4>
+                        <span class="text-muted small mt-1 d-block" id="selectedCandidatePartyText">
+                            No candidate selected yet.
+                        </span>
+                    </div>
+                    <div id="selectionStatusBadge" style="display: none;">
+                        <span class="badge bg-success text-white px-3 py-2 fs-6 shadow-sm">
+                            <i class="bi bi-check-circle-fill me-1"></i> Candidate Selected
+                        </span>
+                    </div>
+                </div>
+
+                <!-- THE OFFICIAL SUBMIT OF VOTE BUTTON -->
+                <div class="text-center py-2">
+                    <button type="button"
+                            id="mainSubmitVoteBtn"
+                            class="btn btn-submit-vote btn-lg px-5 py-3 d-inline-flex align-items-center justify-content-center gap-3 mx-auto shadow-lg"
+                            disabled
+                            onclick="handleOfficialVoteSubmit()">
+                        <i class="bi bi-check2-circle fs-3"></i>
+                        <span class="fs-4 fw-bold">SUBMIT OF VOTE</span>
+                    </button>
+
+                    <div class="mt-3">
+                        <span class="text-muted small d-block">
+                            <i class="bi bi-info-circle-fill text-primary me-1"></i>
+                            Select a candidate above and click <strong>"SUBMIT OF VOTE"</strong> to record your vote in the encrypted tally.
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Modal Confirmation Dialog -->
+<div class="modal fade" id="confirmVoteModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-navy text-white py-3 border-0">
+                <h6 class="modal-title fw-bold text-white">
+                    <i class="bi bi-shield-check text-success me-2"></i>Official Ballot Confirmation
+                </h6>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="stat-icon mx-auto mb-3 bg-green-subtle" style="width: 72px; height: 72px; font-size: 2.2rem;">
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                </div>
+                <span class="text-muted small text-uppercase fw-semibold d-block">Confirming Ballot Submission For:</span>
+                <h4 class="fw-bold text-dark mt-1 mb-1" id="modalCandName">Candidate Name</h4>
+                <div class="d-flex justify-content-center align-items-center gap-2 mb-3">
+                    <span class="badge bg-primary text-white rounded-pill px-3 py-1" id="modalCandPosition">President</span>
+                    <span class="badge bg-light text-primary border px-3 py-1" id="modalPartyName">Party Name</span>
+                </div>
+                
+                <div class="alert alert-warning border-0 small text-start p-3 rounded-3 mb-0">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                    <strong>Important:</strong> 1 Elector = 1 Vote. Once your vote is submitted, your ballot token is permanently consumed and duplicate voting is blocked.
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Change Choice</button>
+                <button type="button" class="btn btn-success fw-bold px-4 py-2 rounded-pill shadow d-flex align-items-center gap-2" id="submitVoteFinalBtn">
+                    <i class="bi bi-fingerprint fs-5"></i> Confirm & Submit Vote
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let selectedCandidateId = null;
+let selectedCandidateName = null;
+let selectedCandidateParty = null;
+let selectedCandidatePosition = null;
+const electionId = {{ election.id if election else 1 }};
+
+// Authentic EVM long buzzer sound (1000 Hz pure tone for 1.2 seconds)
+function playEVMBuzzer() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1000, audioCtx.currentTime); // 1000 Hz EVM tone
+        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 1.2);
+    } catch(e) {}
+}
+
+function selectCandidate(candId, candName, partyName, position) {
+    selectedCandidateId = candId;
+    selectedCandidateName = candName;
+    selectedCandidateParty = partyName;
+    selectedCandidatePosition = position || 'Candidate';
+
+    // Update hidden form input
+    document.getElementById('selectedCandidateInput').value = candId;
+
+    // Update Radio Buttons
+    const radio = document.getElementById('radio-' + candId);
+    if (radio) radio.checked = true;
+
+    // Update Card Highlight States
+    document.querySelectorAll('.candidate-card').forEach(card => card.classList.remove('selected'));
+    const selectedCard = document.getElementById('candidateCard-' + candId);
+    if (selectedCard) selectedCard.classList.add('selected');
+
+    // Update EVM LED Indicator Lamps
+    document.querySelectorAll('.evm-lamp').forEach(l => {
+        l.style.backgroundColor = '#cbd5e1';
+    });
+    document.querySelectorAll('[id^="lampText-"]').forEach(t => {
+        t.textContent = 'READY';
+        t.className = 'small text-muted font-monospace d-none d-sm-inline';
+    });
+
+    const activeLamp = document.getElementById('lamp-' + candId);
+    if (activeLamp) activeLamp.style.backgroundColor = '#ef4444'; // EVM Red LED on
+
+    const activeLampText = document.getElementById('lampText-' + candId);
+    if (activeLampText) {
+        activeLampText.textContent = 'SELECTED';
+        activeLampText.className = 'small text-danger fw-bold font-monospace d-none d-sm-inline';
+    }
+
+    // Update Bottom Submission Box
+    const nameDisplay = document.getElementById('selectedCandidateNameText');
+    const partyDisplay = document.getElementById('selectedCandidatePartyText');
+    const badgeBox = document.getElementById('selectionStatusBadge');
+    const submitBtn = document.getElementById('mainSubmitVoteBtn');
+
+    nameDisplay.innerHTML = `<span class="text-success d-flex flex-wrap align-items-center gap-2"><i class="bi bi-check-circle-fill"></i> ${candName} <span class="badge bg-primary text-white rounded-pill px-2 py-1 fs-6 font-monospace">${selectedCandidatePosition}</span></span>`;
+    partyDisplay.innerHTML = `<strong class="text-dark">${partyName}</strong> &bull; Candidate #${candId}`;
+    badgeBox.style.display = 'block';
+
+    // Enable the prominent SUBMIT OF VOTE button
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('btn-secondary');
+    submitBtn.classList.add('btn-submit-vote', 'animate__animated', 'animate__pulse');
+}
+
+function selectAndConfirmVote(candId, candName, partyName, position) {
+    selectCandidate(candId, candName, partyName, position);
+    handleOfficialVoteSubmit();
+}
+
+function handleOfficialVoteSubmit() {
+    if (!selectedCandidateId) {
+        alert("Please select a candidate first before submitting your vote.");
+        return;
+    }
+
+    document.getElementById('modalCandName').textContent = selectedCandidateName;
+    document.getElementById('modalPartyName').textContent = selectedCandidateParty;
+    const posEl = document.getElementById('modalCandPosition');
+    if (posEl) posEl.textContent = selectedCandidatePosition || 'Candidate';
+
+    const modal = new bootstrap.Modal(document.getElementById('confirmVoteModal'));
+    modal.show();
+}
+
+document.getElementById('submitVoteFinalBtn').addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Casting Vote...';
+
+    const formData = new FormData();
+    formData.append('candidate_id', selectedCandidateId);
+    formData.append('election_id', electionId);
+
+    fetch('/api/cast_vote', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            playEVMBuzzer();
+            setTimeout(() => {
+                window.location.href = data.redirect || '/vote_success';
+            }, 600);
+        } else {
+            alert("Vote recording error: " + data.message);
+            window.location.href = '/booth';
+        }
+    })
+    .catch(err => {
+        console.error("AJAX vote submission failed, attempting direct form POST:", err);
+        // Fallback to standard form submission
+        document.getElementById('officialBallotForm').submit();
+    });
+});
+</script>
+{% endblock %}

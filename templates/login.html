@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - Smart E-Voting Portal | VoteSure{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-5 col-xl-4">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-navy text-white text-center py-4 border-0">
+                    <div class="brand-badge bg-gradient-vote mx-auto mb-3" style="width: 52px; height: 52px;">
+                        <i class="bi bi-shield-check fs-2"></i>
+                    </div>
+                    <h5 class="fw-bold mb-1">VoteSure & Campus Unions</h5>
+                    <p class="text-white-50 small mb-0">Biometric E-Voting & Cryptographic Vaults</p>
+                    <span class="badge bg-success bg-opacity-75 text-white mt-2 px-3 py-1 font-monospace">
+                        Official Authentication Portal
+                    </span>
+                </div>
+
+                <div class="card-body p-4 bg-white">
+                    <h6 class="fw-bold text-dark mb-3">Official Account Sign In</h6>
+                    
+                    <form method="POST" action="{{ url_for('login') }}">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">Username <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted">
+                                    <i class="bi bi-person"></i>
+                                </span>
+                                <input type="text" name="username" class="form-control bg-light border-start-0" placeholder="e.g. admin, principal, or officer" required autofocus autocomplete="username">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted mb-1">Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted">
+                                    <i class="bi bi-lock"></i>
+                                </span>
+                                <input type="password" name="password" id="signin_password" class="form-control bg-light border-start-0" placeholder="••••••••" required autocomplete="current-password">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-2 rounded-3 fw-semibold shadow-sm mt-3">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Portal
+                        </button>
+                    </form>
+
+                    <!-- Registration link -->
+                    <div class="text-center mt-3 pt-3 border-top">
+                        <span class="text-muted small">New Official or Principal?</span>
+                        <a href="{{ url_for('register') }}" class="text-primary fw-bold small text-decoration-none ms-1">
+                            <i class="bi bi-person-plus-fill me-1"></i> Register Official Account
+                        </a>
+                    </div>
+
+                    <!-- Demo Credentials Card -->
+                    <div class="mt-4 pt-3 border-top">
+                        <div class="bg-light p-3 rounded-3 small">
+                            <span class="fw-bold d-block text-secondary mb-2">
+                                <i class="bi bi-key-fill text-warning me-1"></i> Default Demo Credentials:
+                            </span>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Chief Commissioner (Admin):</span>
+                                <code>admin</code> / <code>admin123</code>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>College Principal:</span>
+                                <code>principal</code> / <code>principal123</code>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Polling Booth Officer:</span>
+                                <code>officer</code> / <code>officer123</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

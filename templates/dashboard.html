@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Turnout Dashboard - Smart E-Voting System | VoteSure{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Header Section -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                {% if current_election and current_election.status == 'active' %}
+                <span class="badge bg-success font-monospace px-2 py-1">
+                    <i class="bi bi-broadcast me-1"></i> BOOTH ACTIVE
+                </span>
+                {% elif current_election %}
+                <span class="badge bg-secondary font-monospace px-2 py-1">
+                    {{ current_election.status|upper }}
+                </span>
+                {% endif %}
+                {% if current_election %}
+                    {% if current_election.election_type == 'college' %}
+                        <span class="badge bg-primary text-white px-2 py-1"><i class="bi bi-mortarboard-fill me-1"></i>College Union</span>
+                    {% elif current_election.election_type == 'school' %}
+                        <span class="badge bg-warning text-dark px-2 py-1"><i class="bi bi-backpack-fill me-1"></i>School Council</span>
+                    {% else %}
+                        <span class="badge bg-success text-white px-2 py-1"><i class="bi bi-globe me-1"></i>General</span>
+                    {% endif %}
+                {% endif %}
+                <h4 class="fw-bold mb-0 text-dark d-inline">{{ current_election.title if current_election else "VoteSure - Turnout Dashboard" }}</h4>
+            </div>
+            <p class="text-muted small mb-0 mt-1">
+                {% if current_election and current_election.institution_name %}
+                    <i class="bi bi-building me-1 text-primary"></i> <strong>{{ current_election.institution_name }}</strong> &bull;
+                {% endif %}
+                VoteSure Multi-Election Biometric Portal &bull; Facial Biometrics Active
+            </p>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            {% if all_elections %}
+            <form method="GET" action="{{ url_for('dashboard') }}" class="d-flex align-items-center gap-1">
+                <select name="election_id" class="form-select form-select-sm rounded-pill border-primary border-opacity-50 fw-medium" onchange="this.form.submit()" style="min-width: 210px;">
+                    {% for el in all_elections %}
+                    <option value="{{ el.id }}" {% if el.id == selected_id %}selected{% endif %}>
+                        {% if el.election_type == 'college' %}🎓{% elif el.election_type == 'school' %}🎒{% else %}🌐{% endif %}
+                        {{ el.title }} {% if el.status == 'active' %}(ACTIVE){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% endif %}
+            <a href="{{ url_for('elections_list') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" title="Elections Hub">
+                <i class="bi bi-gear-fill me-1"></i> Hub
+            </a>
+            <a href="{{ url_for('voting_booth') }}" class="btn btn-warning text-dark fw-bold btn-sm px-3 shadow-sm rounded-pill d-flex align-items-center gap-1">
+                <span class="live-dot"></span>
+                <i class="bi bi-fingerprint"></i> Booth
+            </a>
+            <a href="{{ url_for('results', election_id=selected_id) }}" class="btn btn-outline-primary btn-sm px-3 shadow-sm rounded-pill d-flex align-items-center gap-1">
+                <i class="bi bi-trophy-fill"></i> Tally
+            </a>
+            <a href="{{ url_for('add_voter') }}" class="btn btn-primary btn-sm px-3 shadow-sm rounded-pill d-flex align-items-center gap-1">
+                <i class="bi bi-person-plus-fill"></i> Enroll
+            </a>
+        </div>
+    </div>
+
+    <!-- Metric Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card p-3 p-xl-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase tracking-wider">Electoral Roll</span>
+                    <div class="stat-icon bg-blue-subtle">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold text-dark mb-1">{{ stats.total_voters }}</h3>
+                <span class="text-muted small">
+                    <i class="bi bi-shield-check text-primary me-1"></i> {{ stats.enrolled_biometrics }} biometrics registered
+                </span>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card p-3 p-xl-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase tracking-wider">Votes Cast</span>
+                    <div class="stat-icon bg-green-subtle">
+                        <i class="bi bi-check2-all"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold text-success mb-1">{{ stats.total_votes_cast }}</h3>
+                <span class="text-muted small">
+                    <i class="bi bi-person-dash text-secondary me-1"></i> {{ stats.remaining_voters }} voters remaining
+                </span>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card p-3 p-xl-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase tracking-wider">Voter Turnout</span>
+                    <div class="stat-icon bg-purple-subtle">
+                        <i class="bi bi-pie-chart-fill"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold text-dark mb-1">{{ stats.turnout_pct }}%</h3>
+                <div class="progress mt-2" style="height: 6px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ stats.turnout_pct }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card p-3 p-xl-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase tracking-wider">Current Leader</span>
+                    <div class="stat-icon bg-amber-subtle">
+                        <i class="bi bi-trophy"></i>
+                    </div>
+                </div>
+                {% if session.get('role') in ['chief_electoral_officer', 'admin'] and session.get('results_unlocked') %}
+                    <h4 class="fw-bold text-dark mb-0 text-truncate">{{ stats.leader_name }}</h4>
+                    <span class="text-muted small d-block text-truncate">
+                        {{ stats.leader_party }} ({{ stats.leader_votes }} votes)
+                    </span>
+                {% elif session.get('role') in ['chief_electoral_officer', 'admin'] %}
+                    <h5 class="fw-bold text-dark mb-0"><i class="bi bi-lock-fill text-warning me-1"></i> Tally Sealed</h5>
+                    <a href="{{ url_for('results') }}" class="small text-primary text-decoration-none d-block mt-1">
+                        <i class="bi bi-key-fill me-1"></i> Unlock with Password
+                    </a>
+                {% else %}
+                    <h5 class="fw-bold text-muted mb-0"><i class="bi bi-lock-fill text-secondary me-1"></i> Protected</h5>
+                    <span class="text-muted small d-block mt-1" style="font-size: 0.75rem;">
+                        <i class="bi bi-shield-lock me-1"></i> Chief Electoral Officer Only
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Row -->
+    <div class="row g-4">
+        <!-- Live Candidate Standings -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Nominated Candidates & Live Votes</h6>
+                        <span class="text-muted small">Real-time vote tallies updated after biometric ballot verification</span>
+                    </div>
+                    <a href="{{ url_for('candidates_list') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                        Manage Candidates
+                    </a>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table custom-table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Candidate</th>
+                                    <th>Party & Platform</th>
+                                    <th>Total Votes</th>
+                                    <th>Vote Share</th>
+                                    <th class="text-end">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if candidates %}
+                                    {% for c in candidates %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="voter-avatar-placeholder bg-blue-subtle">
+                                                    {{ c.name[0] }}
+                                                </div>
+                                                <span class="fw-bold text-dark">{{ c.name }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="fw-semibold text-secondary d-block small">{{ c.party_name }}</span>
+                                            <span class="text-muted text-truncate d-inline-block small" style="max-width: 250px;">{{ c.manifesto or 'No manifesto specified' }}</span>
+                                        </td>
+                                        <td>
+                                            {% if session.get('role') in ['chief_electoral_officer', 'admin'] and session.get('results_unlocked') %}
+                                                <span class="fw-bold fs-6 text-dark font-monospace">{{ c.votes_count }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary-subtle text-secondary border font-monospace small">
+                                                    <i class="bi bi-lock-fill me-1"></i> Sealed
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td style="min-width: 140px;">
+                                            {% if session.get('role') in ['chief_electoral_officer', 'admin'] and session.get('results_unlocked') %}
+                                                {% set pct = (c.votes_count / stats.total_votes_cast * 100) if stats.total_votes_cast > 0 else 0 %}
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="progress flex-grow-1" style="height: 6px;">
+                                                        <div class="progress-bar bg-primary" style="width: {{ pct }}%;"></div>
+                                                    </div>
+                                                    <span class="small font-monospace text-muted">{{ pct|round(1) }}%</span>
+                                                </div>
+                                            {% elif session.get('role') in ['chief_electoral_officer', 'admin'] %}
+                                                <a href="{{ url_for('results') }}" class="small text-primary text-decoration-none">
+                                                    <i class="bi bi-key-fill me-1"></i> Enter CEO Password
+                                                </a>
+                                            {% else %}
+                                                <span class="small text-muted">
+                                                    <i class="bi bi-shield-lock me-1"></i> CEO Restricted
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if c.votes_count == stats.leader_votes and stats.leader_votes > 0 %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                                    <i class="bi bi-star-fill text-warning me-1"></i> Leading
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-light text-muted border px-2 py-1">Contesting</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-5 text-muted">
+                                            No candidates nominated yet. <a href="{{ url_for('candidates_list') }}">Nominate Candidate</a>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Architecture & Security Pipeline -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="fw-bold text-dark mb-0">Biometric E-Voting Pipeline</h6>
+                    <span class="text-muted small">Anti-Fraud & Duplicate Prevention</span>
+                </div>
+                <div class="card-body pt-1">
+                    <div class="timeline-box small">
+                        <div class="d-flex align-items-start gap-3 mb-3">
+                            <div class="stat-icon bg-blue-subtle flex-shrink-0" style="width: 36px; height: 36px; font-size: 1rem;">
+                                <i class="bi bi-camera"></i>
+                            </div>
+                            <div>
+                                <span class="fw-semibold d-block text-dark">1. Live Facial Scanner</span>
+                                <span class="text-muted">Camera captures voter face at polling booth in real-time.</span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-start gap-3 mb-3">
+                            <div class="stat-icon bg-purple-subtle flex-shrink-0" style="width: 36px; height: 36px; font-size: 1rem;">
+                                <i class="bi bi-cpu"></i>
+                            </div>
+                            <div>
+                                <span class="fw-semibold d-block text-dark">2. 128-d Metric Verification</span>
+                                <span class="text-muted">Matches landmarks against registered electoral roll encodings.</span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-start gap-3 mb-3">
+                            <div class="stat-icon bg-amber-subtle flex-shrink-0" style="width: 36px; height: 36px; font-size: 1rem;">
+                                <i class="bi bi-shield-x"></i>
+                            </div>
+                            <div>
+                                <span class="fw-semibold d-block text-dark">3. Duplicate Vote Blocker</span>
+                                <span class="text-muted">Database checks <code>has_voted</code> flag; repeated voting is blocked!</span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="stat-icon bg-green-subtle flex-shrink-0" style="width: 36px; height: 36px; font-size: 1rem;">
+                                <i class="bi bi-check2-circle"></i>
+                            </div>
+                            <div>
+                                <span class="fw-semibold d-block text-dark">4. Secure EVM Ballot Cast</span>
+                                <span class="text-muted">Audited vote recorded with EVM buzzer and instant lock.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Demo Controls -->
+            {% if session.get('role') in ['admin', 'chief_electoral_officer'] %}
+            <div class="card border-0 shadow-sm rounded-4 bg-navy text-white p-3">
+                <span class="badge bg-danger text-white w-auto me-auto mb-2">Commissioner Controls</span>
+                <h6 class="fw-bold mb-1">Reset Poll Session</h6>
+                <p class="text-white-50 small mb-3">Clear cast votes and reset voter ballot locks for a fresh live demonstration.</p>
+                <form method="POST" action="{{ url_for('reset_votes') }}" onsubmit="return confirm('Reset all vote tallies and unlock voter ballots for a fresh demo?');">
+                    <button type="submit" class="btn btn-outline-light btn-sm w-100 rounded-pill">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Reset All Votes for Demo
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

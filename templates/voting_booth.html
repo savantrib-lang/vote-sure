@@ -1,0 +1,679 @@
+{% extends "base.html" %}
+
+{% block title %}Live Biometric Voting Booth - VoteSure{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <span class="live-dot" style="width: 12px; height: 12px; background-color: #10b981;"></span>
+                <h4 class="fw-bold mb-0 text-dark">Live Biometric Voting Booth</h4>
+                {% if election %}
+                    {% if election.election_type == 'college' %}
+                        <span class="badge bg-primary text-white rounded-pill px-3 py-1"><i class="bi bi-mortarboard-fill me-1"></i>College Union Election</span>
+                    {% elif election.election_type == 'school' %}
+                        <span class="badge bg-warning text-dark rounded-pill px-3 py-1"><i class="bi bi-backpack-fill me-1"></i>School Council Election</span>
+                    {% else %}
+                        <span class="badge bg-success text-white rounded-pill px-3 py-1"><i class="bi bi-globe me-1"></i>General Election</span>
+                    {% endif %}
+                {% endif %}
+                <span class="badge bg-navy text-white font-monospace">BOOTH #01</span>
+            </div>
+            <p class="text-muted small mb-0">
+                {% if election and election.institution_name %}
+                    <i class="bi bi-building me-1 text-primary"></i> <strong>{{ election.institution_name }}</strong> &bull;
+                {% endif %}
+                Voting for: <strong class="text-dark">{{ election.title if election else "VoteSure - General Public Election 2026" }}</strong>. Face the biometric scanner to unlock your electronic ballot.
+            </p>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="{{ url_for('elections_list') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" title="Switch between College, School, or General Election">
+                <i class="bi bi-mortarboard-fill me-1"></i> Switch Election
+            </a>
+            <a href="{{ url_for('results') }}" class="btn btn-outline-primary btn-sm px-3 rounded-pill">
+                <i class="bi bi-trophy me-1"></i> Live Results
+            </a>
+            <a href="{{ url_for('voters_list') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
+                <i class="bi bi-people me-1"></i> Electoral Roll
+            </a>
+        </div>
+    </div>
+
+    <!-- Dynamic Device Camera Guidance Banner -->
+    <div class="alert alert-warning border-0 shadow-sm rounded-4 mb-3 p-3">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="p-2 bg-warning bg-opacity-25 text-dark rounded-3 fs-3 flex-shrink-0" id="cameraGuidanceIcon">
+                    <i class="bi bi-camera-video"></i>
+                </div>
+                <div class="small">
+                    <strong class="text-dark d-block" id="cameraGuidanceTitle">Camera Hardware & Privacy Shutter Guide:</strong>
+                    <span id="cameraGuidanceText">If you see <em>"Booth Camera Offline"</em>, check that your device camera permissions are allowed, ensure any physical privacy shutter/switch is open, then click <strong>"Reset Camera"</strong>.</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle px-3 py-2 rounded-pill small">
+                    <i class="bi bi-slash-circle me-1"></i> Photo Uploads Barred
+                </span>
+                <button class="btn btn-warning btn-sm fw-bold rounded-pill px-3 shadow-sm" onclick="restartCamera()">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Reset Camera
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Live Video Stream -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow rounded-4 overflow-hidden bg-black">
+                <div class="card-header bg-navy text-white py-2 px-3 d-flex justify-content-between align-items-center">
+                    <span class="small fw-semibold">
+                        <i class="bi bi-camera-fill text-danger me-1"></i> Biometric Facial Scanner (DirectShow 640x480)
+                    </span>
+                    <span class="badge bg-success bg-opacity-75 text-white font-monospace">
+                        <i class="bi bi-shield-check me-1"></i> Anti-Proxy Protection Active
+                    </span>
+                </div>
+                
+                <div class="video-frame-box text-center position-relative" style="min-height: 380px; max-height: 440px; aspect-ratio: 4/3; margin: 0 auto; background: #0f172a; overflow: hidden;">
+                    <!-- Real Browser Web Camera Video -->
+                    <video id="boothWebcamVideo" autoplay playsinline webkit-playsinline muted class="w-100 h-100" style="object-fit: cover; display: block;"></video>
+                    <canvas id="boothScanCanvas" style="display: none;"></canvas>
+                    <!-- Server Stream Fallback (loaded only on demand for local debug) -->
+                    <img id="boothVideoFeed" src="" data-src="{{ url_for('video_feed') }}" alt="Live Camera Feed" class="w-100 h-100 object-fit-cover" style="display: none;">
+                    <div class="hud-overlay d-none d-sm-block">
+                        <span id="boothCameraPill" class="badge bg-success bg-opacity-75 text-white font-monospace">
+                            <i class="bi bi-camera-video-fill me-1"></i> Web Cam Active
+                        </span>
+                        <span id="livenessPill" class="badge bg-navy border border-info text-info font-monospace ms-1">
+                            <i class="bi bi-shield-check me-1"></i> Anti-Spoof Active
+                        </span>
+                    </div>
+
+                    <!-- User Gesture Camera Start Overlay for Mobile Browsers -->
+                    <div id="boothCameraStartOverlay" class="position-absolute top-0 start-0 w-100 h-100 flex-column align-items-center justify-content-center text-white p-3 d-none" style="background: rgba(15, 23, 42, 0.92); z-index: 10; display: none;">
+                        <i class="bi bi-camera-fill fs-1 text-primary mb-2"></i>
+                        <h5 class="fw-bold mb-1">Camera Access Required</h5>
+                        <p class="small text-white-50 text-center mb-3 px-3" id="boothCameraPromptText">
+                            Tap below to enable your camera and verify your facial biometric.
+                        </p>
+                        <button type="button" class="btn btn-primary px-4 py-2 rounded-pill fw-bold shadow" onclick="initBoothWebcam(true)">
+                            <i class="bi bi-play-circle-fill me-1"></i> Start Camera Lens
+                        </button>
+                    </div>
+
+                    <!-- Flip Camera Button (Front/Back) for Mobile Phones -->
+                    <button type="button" class="btn btn-sm btn-dark bg-opacity-75 text-white border-0 rounded-pill position-absolute bottom-0 end-0 m-2 px-3 py-1 shadow-sm" id="boothFlipBtn" onclick="toggleBoothFacing()" style="z-index: 6; display: none;" title="Switch Camera">
+                        <i class="bi bi-arrow-repeat me-1"></i> Flip Camera
+                    </button>
+                </div>
+
+                <div class="card-footer bg-navy text-white-50 py-2 px-3 small d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-info-circle text-info me-1"></i> 1 Citizen = 1 Vote • Biometric Verified
+                    </span>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-info py-0 px-2" onclick="initBoothWebcam(true)" title="Restart Camera Lens">
+                            <i class="bi bi-arrow-clockwise"></i> Camera
+                        </button>
+                        <button class="btn btn-sm btn-outline-light py-0 px-2" onclick="toggleFullScreen()">
+                            <i class="bi bi-fullscreen"></i> Fullscreen
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-Time Voter Verification Decision Card -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100" id="boothStatusCard">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold text-dark mb-0">Biometric Verification Terminal</h6>
+                    <span class="badge bg-light text-muted border font-monospace" id="scannerClock">--:--:--</span>
+                </div>
+
+                <div class="card-body p-4 d-flex flex-column justify-content-between text-center">
+                    <!-- Dynamic Verification Icon & Status -->
+                    <div>
+                        <div class="stat-icon mx-auto mb-3 bg-blue-subtle" id="statusIcon" style="width: 72px; height: 72px; font-size: 2.2rem;">
+                            <i class="bi bi-person-bounding-box"></i>
+                        </div>
+                        <span class="badge bg-secondary text-uppercase mb-2" id="statusBadge">Scanner Ready</span>
+                        <h4 class="fw-bold text-dark mb-1" id="voterNameDisplay">Position face in frame</h4>
+                        <p class="text-muted small mb-3" id="voterDetailDisplay">Waiting for voter to face the camera...</p>
+
+                        <!-- Decision Notification Box -->
+                        <div class="alert alert-light border p-3 rounded-3 text-start mb-3" id="messageAlertBox">
+                            <span class="small d-block fw-semibold" id="terminalMessage">
+                                <i class="bi bi-broadcast text-primary me-1"></i> Biometric scanner is active. Look straight into the camera lens.
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Action Button Box (Unlocks when verified!) -->
+                    <div class="mt-4 pt-3 border-top" id="ballotActionContainer">
+                        <div id="unverifiedPlaceholder" class="text-muted small py-2">
+                            <i class="bi bi-lock-fill text-secondary me-1"></i> Electronic ballot locked until facial biometric matches electoral roll.
+                        </div>
+
+                        <!-- Proceed to Ballot Button (Hidden by default) -->
+                        <div id="proceedBallotBox" style="display: none;">
+                            <a href="#" id="proceedBallotBtn" class="btn btn-success btn-lg w-100 py-3 rounded-3 fw-bold shadow d-flex align-items-center justify-content-center gap-2 animate__animated animate__pulse animate__infinite">
+                                <i class="bi bi-check-circle-fill fs-5"></i> PROCEED TO ELECTRONIC BALLOT 👉
+                            </a>
+                            <span class="text-success small fw-semibold d-block mt-2">
+                                <i class="bi bi-shield-lock-fill me-1"></i> Single-use ballot token issued.
+                            </span>
+                        </div>
+
+                        <!-- Duplicate Vote Blocked Banner (Hidden by default) -->
+                        <div id="duplicateBlockedBox" style="display: none;">
+                            <div class="bg-danger bg-opacity-10 border border-danger p-3 rounded-3 text-danger">
+                                <h6 class="fw-bold mb-1"><i class="bi bi-slash-circle-fill me-1"></i> DUPLICATE VOTE BLOCKED!</h6>
+                                <span class="small d-block">This voter has already voted in this election. Ballots cannot be re-issued.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let lastStatus = null;
+let currentVoterId = null;
+
+// Synthetic Web Audio EVM-style chime on verification
+function playSuccessChime() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+        osc.frequency.exponentialRampToValueAtTime(783.99, audioCtx.currentTime + 0.15); // G5
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+    } catch(e) {}
+}
+
+function playWarningBuzzer() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, audioCtx.currentTime); // Low buzz
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.35);
+    } catch(e) {}
+}
+
+// Poll real-time booth events
+function pollBoothEvent() {
+    fetch('/api/latest_booth_event')
+        .then(res => res.json())
+        .then(event => {
+            if (event.timestamp) {
+                document.getElementById('scannerClock').textContent = event.timestamp;
+            }
+
+            if (event.status !== lastStatus || event.voter_internal_id !== currentVoterId) {
+                lastStatus = event.status;
+                currentVoterId = event.voter_internal_id;
+                renderBoothUI(event);
+            }
+        })
+        .catch(err => console.error("Error polling booth:", err));
+}
+
+function renderBoothUI(event) {
+    const card = document.getElementById('boothStatusCard');
+    const icon = document.getElementById('statusIcon');
+    const badge = document.getElementById('statusBadge');
+    const name = document.getElementById('voterNameDisplay');
+    const detail = document.getElementById('voterDetailDisplay');
+    const terminalMsg = document.getElementById('terminalMessage');
+    const unverifiedBox = document.getElementById('unverifiedPlaceholder');
+    const proceedBox = document.getElementById('proceedBallotBox');
+    const duplicateBox = document.getElementById('duplicateBlockedBox');
+    const proceedBtn = document.getElementById('proceedBallotBtn');
+    const livenessPill = document.getElementById('livenessPill');
+
+    if (event.status === 'spoof_detected') {
+        playWarningBuzzer();
+        card.className = "card border-0 shadow rounded-4 h-100 border border-3 border-danger bg-danger bg-opacity-10 animate__animated animate__headShake";
+        icon.className = "stat-icon mx-auto mb-3 bg-red-subtle";
+        icon.innerHTML = '<i class="bi bi-shield-slash-fill text-danger"></i>';
+        badge.className = "badge bg-danger text-white text-uppercase mb-2";
+        badge.textContent = "SPOOF ATTACK BLOCKED";
+        name.textContent = "Artificial / Screen Face Blocked";
+        detail.textContent = "Digital screen, Google photo, or static picture detected";
+        terminalMsg.innerHTML = `<i class="bi bi-shield-x text-danger me-1"></i> <strong>Anti-Spoof Alert:</strong> ${event.message || 'Digital screen or artificial photo detected. Only live real-time human faces permitted!'}`;
+
+        if (livenessPill) {
+            livenessPill.className = "badge bg-danger text-white font-monospace ms-1 animate__animated animate__flash";
+            livenessPill.innerHTML = '<i class="bi bi-slash-circle-fill me-1"></i> Spoof Blocked (Screen/Photo)';
+        }
+
+        unverifiedBox.style.display = 'block';
+        proceedBox.style.display = 'none';
+        duplicateBox.style.display = 'none';
+
+    } else if (event.status === 'blink_required') {
+        card.className = "card border-0 shadow rounded-4 h-100 border border-3 border-warning bg-warning bg-opacity-10 animate__animated animate__pulse";
+        icon.className = "stat-icon mx-auto mb-3 bg-amber-subtle";
+        icon.innerHTML = '<i class="bi bi-eye text-warning fs-1"></i>';
+        badge.className = "badge bg-warning text-dark text-uppercase mb-2";
+        badge.textContent = "ACTION REQUIRED • BLINK YOUR EYES";
+        name.textContent = event.voter_name || "Elector Matched";
+        detail.textContent = `${event.voter_id || ''} • ${event.constituency || ''} (${event.match_confidence}% Match)`;
+        terminalMsg.innerHTML = `<i class="bi bi-eye-fill text-warning me-1"></i> <strong>Live Human Challenge:</strong> Please <strong>blink your eyes</strong> or close and open them facing the camera lens to confirm live presence.`;
+
+        if (livenessPill) {
+            livenessPill.className = "badge bg-warning text-dark font-monospace ms-1 animate__animated animate__pulse animate__infinite";
+            livenessPill.innerHTML = '<i class="bi bi-eye-fill me-1"></i> Blink or Close Eyes';
+        }
+
+        unverifiedBox.style.display = 'block';
+        proceedBox.style.display = 'none';
+        duplicateBox.style.display = 'none';
+
+    } else if (event.status === 'verified_can_vote') {
+        playSuccessChime();
+        card.className = "card border-0 shadow rounded-4 h-100 border border-2 border-success bg-success bg-opacity-10";
+        icon.className = "stat-icon mx-auto mb-3 bg-green-subtle";
+        icon.innerHTML = '<i class="bi bi-shield-check text-success"></i>';
+        badge.className = "badge bg-success text-white text-uppercase mb-2";
+        badge.textContent = "Identity Confirmed • Ready to Vote";
+        name.textContent = event.voter_name;
+        detail.textContent = `${event.voter_id} • ${event.constituency} (${event.match_confidence}% Match, Live Human Verified)`;
+        terminalMsg.innerHTML = `<i class="bi bi-check-circle-fill text-success me-1"></i> <strong>Identity Confirmed: ${event.voter_name}!</strong> Opening EVM Ballot in 1 second...`;
+
+        if (livenessPill) {
+            livenessPill.className = "badge bg-success text-white font-monospace ms-1";
+            livenessPill.innerHTML = '<i class="bi bi-person-check-fill me-1"></i> Live Human (Real-Time)';
+        }
+
+        unverifiedBox.style.display = 'none';
+        duplicateBox.style.display = 'none';
+        proceedBox.style.display = 'block';
+        const targetUrl = `/booth/authorize_voter/${event.voter_internal_id}`;
+        proceedBtn.href = targetUrl;
+
+        // Automatically navigate to ballot screen so voting seamlessly moves forward!
+        if (!window.isRedirectingToBallot) {
+            window.isRedirectingToBallot = true;
+            if (boothScanInterval) clearInterval(boothScanInterval);
+            setTimeout(() => {
+                window.location.href = targetUrl;
+            }, 1000);
+        }
+
+    } else if (event.status === 'already_voted') {
+        playWarningBuzzer();
+        card.className = "card border-0 shadow rounded-4 h-100 border border-2 border-danger bg-danger bg-opacity-10";
+        icon.className = "stat-icon mx-auto mb-3 bg-red-subtle";
+        icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-danger"></i>';
+        badge.className = "badge bg-danger text-white text-uppercase mb-2";
+        badge.textContent = "Duplicate Vote Detected";
+        name.textContent = event.voter_name;
+        detail.textContent = `${event.voter_id} • Already Cast Ballot`;
+        terminalMsg.innerHTML = `<i class="bi bi-x-circle-fill text-danger me-1"></i> ${event.message}`;
+
+        if (livenessPill) {
+            livenessPill.className = "badge bg-warning text-dark font-monospace ms-1";
+            livenessPill.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i> Duplicate Elector';
+        }
+
+        unverifiedBox.style.display = 'none';
+        proceedBox.style.display = 'none';
+        duplicateBox.style.display = 'block';
+
+    } else if (event.status === 'unrecognized') {
+        card.className = "card border-0 shadow-sm rounded-4 h-100 bg-warning bg-opacity-10 border border-warning";
+        icon.className = "stat-icon mx-auto mb-3 bg-amber-subtle";
+        icon.innerHTML = '<i class="bi bi-person-x-fill text-warning"></i>';
+        badge.className = "badge bg-warning text-dark text-uppercase mb-2";
+        badge.textContent = "Unregistered Face";
+        name.textContent = "Biometric Match Not Found";
+        detail.textContent = "No matching encoding in registered electoral roll";
+        terminalMsg.innerHTML = `<i class="bi bi-exclamation-circle text-warning me-1"></i> ${event.message}`;
+
+        if (livenessPill) {
+            livenessPill.className = "badge bg-info text-white font-monospace ms-1";
+            livenessPill.innerHTML = '<i class="bi bi-person-bounding-box me-1"></i> Live Human (Unregistered)';
+        }
+
+        unverifiedBox.style.display = 'block';
+        proceedBox.style.display = 'none';
+        duplicateBox.style.display = 'none';
+
+    } else {
+        // Idle
+        card.className = "card border-0 shadow-sm rounded-4 h-100 bg-white";
+        icon.className = "stat-icon mx-auto mb-3 bg-blue-subtle";
+        icon.innerHTML = '<i class="bi bi-person-bounding-box"></i>';
+        badge.className = "badge bg-secondary text-uppercase mb-2";
+        badge.textContent = "Scanner Active";
+        name.textContent = "Position face in frame";
+        detail.textContent = "Waiting for voter to face biometric scanner...";
+        terminalMsg.innerHTML = '<i class="bi bi-broadcast text-primary me-1"></i> Biometric scanner is active. Look straight into the camera lens.';
+
+        if (livenessPill) {
+            livenessPill.className = "badge bg-navy border border-info text-info font-monospace ms-1";
+            livenessPill.innerHTML = '<i class="bi bi-shield-check me-1"></i> Anti-Spoof Active';
+        }
+
+        unverifiedBox.style.display = 'block';
+        proceedBox.style.display = 'none';
+        duplicateBox.style.display = 'none';
+    }
+}
+
+let boothStream = null;
+let boothFacingMode = "user"; // 'user' (selfie/front) or 'environment' (back)
+let boothScanBusy = false;
+let boothScanInterval = null;
+
+async function initBoothWebcam(fromUserGesture = false) {
+    const video = document.getElementById('boothWebcamVideo');
+    const pill = document.getElementById('boothCameraPill');
+    const overlay = document.getElementById('boothCameraStartOverlay');
+    const promptText = document.getElementById('boothCameraPromptText');
+    const flipBtn = document.getElementById('boothFlipBtn');
+
+    if (boothScanInterval) {
+        clearInterval(boothScanInterval);
+        boothScanInterval = null;
+    }
+
+    if (boothStream) {
+        boothStream.getTracks().forEach(t => t.stop());
+        boothStream = null;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        const isLocal = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+        const isHttps = (location.protocol === 'https:');
+        if (!isHttps && !isLocal) {
+            handleBoothCameraError(new Error("INSECURE_ORIGIN"), true);
+        } else {
+            handleBoothCameraError(new Error("Camera API not supported in this browser. Please open in Chrome, Safari, or Edge over HTTPS."), fromUserGesture);
+        }
+        return;
+    }
+
+    let stream = null;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    try {
+        if (isMobile) {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: boothFacingMode } },
+                audio: false
+            });
+        } else {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        }
+    } catch (e1) {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        } catch (e2) {
+            console.warn("Booth camera request error:", e2);
+            handleBoothCameraError(e2, fromUserGesture);
+            return;
+        }
+    }
+
+    if (!stream) {
+        handleBoothCameraError(new Error("Unable to capture video stream"), fromUserGesture);
+        return;
+    }
+
+    boothStream = stream;
+    video.srcObject = stream;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.muted = true;
+
+    // Immediately reveal video and hide overlay
+    if (overlay) {
+        overlay.classList.add('d-none');
+        overlay.style.setProperty('display', 'none', 'important');
+    }
+    video.style.display = 'block';
+    if (pill) {
+        pill.className = "badge bg-success bg-opacity-75 text-white font-monospace";
+        pill.innerHTML = '<i class="bi bi-camera-video-fill me-1"></i> Live Web Cam Active';
+    }
+    if (flipBtn && isMobile) {
+        flipBtn.style.display = 'inline-block';
+    }
+
+    video.onloadedmetadata = () => {
+        video.play().catch(e => console.warn("Booth video.play onloadedmetadata:", e));
+    };
+    video.play().catch(e => console.warn("Booth video.play direct:", e));
+
+    if (boothScanInterval) clearInterval(boothScanInterval);
+    boothScanInterval = setInterval(scanWebcamFrame, 280);
+}
+
+function toggleBoothFacing() {
+    boothFacingMode = (boothFacingMode === "user") ? "environment" : "user";
+    initBoothWebcam(true);
+}
+
+function handleBoothCameraError(err, fromUserGesture) {
+    console.error("handleBoothCameraError:", err);
+    const pill = document.getElementById('boothCameraPill');
+    const overlay = document.getElementById('boothCameraStartOverlay');
+    const promptText = document.getElementById('boothCameraPromptText');
+    const terminalMsg = document.getElementById('terminalMessage');
+
+    if (overlay) {
+        overlay.classList.remove('d-none');
+        overlay.style.setProperty('display', 'flex', 'important');
+    }
+
+    if (!fromUserGesture) {
+        if (pill) {
+            pill.className = "badge bg-secondary text-white font-monospace";
+            pill.innerHTML = '<i class="bi bi-camera-video me-1"></i> Ready';
+        }
+        if (promptText) {
+            promptText.textContent = "Tap below to activate your camera lens for facial verification.";
+        }
+        return;
+    }
+
+    const errName = err ? (err.name || '') : '';
+    const errMsg = err ? (err.message || '') : '';
+
+    if (errMsg === 'INSECURE_ORIGIN') {
+        const httpsUrl = "https://surprise-bulletin-nissan-publications.trycloudflare.com" + location.pathname;
+        if (pill) {
+            pill.className = "badge bg-danger text-white font-monospace";
+            pill.innerHTML = '<i class="bi bi-shield-x me-1"></i> Not Secure Origin';
+        }
+        if (promptText) {
+            promptText.innerHTML = `
+                <span class="text-danger fw-bold fs-6 d-block mb-1">Camera Blocked by Browser ("Not Secure" Origin)</span>
+                <span class="small text-muted d-block mb-2">Modern browsers disable camera access on plain IP addresses (<code>${location.host}</code>).</span>
+                <a href="${httpsUrl}" class="btn btn-warning btn-sm fw-bold px-3 py-2 rounded-pill shadow">
+                    <i class="bi bi-shield-lock-fill me-1"></i> Switch to Secure HTTPS (Camera Works) 👉
+                </a>
+            `;
+        }
+        if (terminalMsg) {
+            terminalMsg.innerHTML = `<i class="bi bi-shield-x text-danger me-1"></i> <strong>Insecure Origin Detected:</strong> Browsers require HTTPS to turn on the camera. <a href="${httpsUrl}" class="text-primary fw-bold">Click here to open via HTTPS</a>.`;
+        }
+    } else if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+        if (pill) {
+            pill.className = "badge bg-danger text-white font-monospace";
+            pill.innerHTML = '<i class="bi bi-shield-x me-1"></i> Permission Blocked';
+        }
+        if (promptText) {
+            promptText.innerHTML = `<span class="text-warning fw-semibold">Camera is blocked in browser settings.</span><br><small>Click the 🔒 icon in the URL bar above &rarr; set Camera to <strong>Allow</strong> &rarr; tap Start Camera Lens.</small>`;
+        }
+        if (terminalMsg) {
+            terminalMsg.innerHTML = `<i class="bi bi-shield-lock text-warning me-1"></i> <strong>Camera Permission Blocked:</strong> Click the <strong>lock / site settings icon (🔒 or ⚙️)</strong> in your browser's URL address bar at top, change Camera to <strong>Allow</strong>, then tap 'Start Camera Lens'.`;
+        }
+    } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+        if (pill) {
+            pill.className = "badge bg-danger text-white font-monospace";
+            pill.innerHTML = '<i class="bi bi-camera-video-off-fill me-1"></i> No Camera Found';
+        }
+        if (promptText) {
+            promptText.innerHTML = `<span class="text-danger fw-semibold">No camera hardware detected.</span><br><small>Check if your laptop has a physical privacy switch on the edge and slide it ON.</small>`;
+        }
+        if (terminalMsg) {
+            terminalMsg.innerHTML = `<i class="bi bi-exclamation-triangle-fill text-danger me-1"></i> <strong>No Camera Hardware Found:</strong> Please check your laptop's physical camera privacy slider switch or connect a webcam.`;
+        }
+    } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+        if (pill) {
+            pill.className = "badge bg-warning text-dark font-monospace";
+            pill.innerHTML = '<i class="bi bi-camera-video-off-fill me-1"></i> Camera In Use';
+        }
+        if (promptText) {
+            promptText.innerHTML = `<span class="text-warning fw-semibold">Camera is busy or in use.</span><br><small>Another app (Zoom, Teams, Camera app) is using your webcam. Please close it and retry.</small>`;
+        }
+        if (terminalMsg) {
+            terminalMsg.innerHTML = `<i class="bi bi-camera-video-off text-warning me-1"></i> <strong>Camera In Use:</strong> Another app is holding your webcam. Please close any background video apps.`;
+        }
+    } else {
+        if (pill) {
+            pill.className = "badge bg-danger text-white font-monospace";
+            pill.innerHTML = '<i class="bi bi-exclamation-diamond me-1"></i> Camera Error';
+        }
+        if (promptText) {
+            promptText.innerHTML = `<span class="text-danger fw-semibold">Camera Error: ${errName || 'Failed'}</span><br><small>${errMsg || 'Please check browser camera access.'}</small>`;
+        }
+    }
+}
+
+function scanWebcamFrame() {
+    const video = document.getElementById('boothWebcamVideo');
+    if (!boothStream || !video.srcObject || video.paused || video.videoWidth === 0 || boothScanBusy) return;
+
+    boothScanBusy = true;
+    const canvas = document.getElementById('boothScanCanvas');
+    const aspect = (video.videoHeight > 0) ? (video.videoWidth / video.videoHeight) : (4/3);
+    canvas.width = 320;
+    canvas.height = Math.round(320 / aspect);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const frameData = canvas.toDataURL('image/jpeg', 0.80);
+
+    fetch('/api/scan_booth_frame', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: frameData })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.event) {
+            renderBoothUI(data.event);
+            if (data.event.status === 'verified_can_vote') {
+                if (boothScanInterval) clearInterval(boothScanInterval);
+                boothScanInterval = null;
+            }
+        }
+    })
+    .catch(err => {
+        console.debug("Frame scan pass:", err);
+    })
+    .finally(() => {
+        boothScanBusy = false;
+    });
+}
+
+function restartCamera() {
+    const alertBox = document.getElementById('terminalMessage');
+    if (alertBox) alertBox.innerHTML = '<span class="spinner-border spinner-border-sm me-1 text-primary"></span> Connecting to camera hardware...';
+
+    const isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    if (isLocal) {
+        fetch('/api/restart_camera', { method: 'POST' }).finally(() => {
+            initBoothWebcam(true);
+        });
+    } else {
+        initBoothWebcam(true);
+    }
+}
+
+function handleVideoError(img) {
+    console.warn("Video stream disconnected.");
+}
+
+function toggleFullScreen() {
+    const container = document.querySelector('.video-frame-box');
+    if (!document.fullscreenElement) {
+        if (container.requestFullscreen) container.requestFullscreen();
+    } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+    }
+}
+
+function detectClientDeviceAndCustomizeBanner() {
+    const titleEl = document.getElementById('cameraGuidanceTitle');
+    const textEl = document.getElementById('cameraGuidanceText');
+    const iconEl = document.getElementById('cameraGuidanceIcon');
+    if (!titleEl || !textEl) return;
+    const ua = navigator.userAgent || '';
+    if (/iPhone|iPad|iPod/i.test(ua)) {
+        if (iconEl) iconEl.innerHTML = '<i class="bi bi-phone"></i>';
+        titleEl.innerHTML = '<i class="bi bi-apple me-1"></i> Apple iOS Device Camera Guide:';
+        textEl.innerHTML = 'Ensure camera permission is set to <strong>Allow</strong> in your browser settings (Safari/Chrome). Use the <strong>Flip Camera</strong> button to switch between front and rear camera lenses.';
+    } else if (/Android/i.test(ua)) {
+        if (iconEl) iconEl.innerHTML = '<i class="bi bi-phone"></i>';
+        titleEl.innerHTML = '<i class="bi bi-android2 me-1"></i> Android Mobile Camera Guide:';
+        textEl.innerHTML = 'Ensure camera permission is allowed in your browser. You can use the <strong>Flip Camera</strong> button on the viewfinder to switch between front and back lenses.';
+    } else if (/Windows/i.test(ua)) {
+        if (iconEl) iconEl.innerHTML = '<i class="bi bi-laptop"></i>';
+        titleEl.innerHTML = '<i class="bi bi-windows me-1"></i> Windows Device Camera Guide:';
+        textEl.innerHTML = 'If camera appears offline, ensure camera access is enabled in Windows Privacy Settings and check if your laptop/webcam has a physical privacy slider or switch in the open position.';
+    } else if (/Macintosh|Mac OS X/i.test(ua)) {
+        if (iconEl) iconEl.innerHTML = '<i class="bi bi-laptop"></i>';
+        titleEl.innerHTML = '<i class="bi bi-apple me-1"></i> Mac Device Camera Guide:';
+        textEl.innerHTML = 'Ensure camera access is enabled in macOS System Settings &gt; Privacy &amp; Security &gt; Camera, then click Reset Camera.';
+    } else {
+        titleEl.innerHTML = '<i class="bi bi-camera-video me-1"></i> Camera Hardware & Privacy Shutter Guide:';
+        textEl.innerHTML = 'If you see "Booth Camera Offline", ensure browser camera permissions are allowed and any physical privacy shutter is open, then click Reset Camera.';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    detectClientDeviceAndCustomizeBanner();
+    initBoothWebcam(false);
+});
+
+window.addEventListener('beforeunload', () => {
+    if (boothScanInterval) {
+        clearInterval(boothScanInterval);
+    }
+    if (boothStream) {
+        boothStream.getTracks().forEach(t => t.stop());
+    }
+    const serverFeed = document.getElementById('boothVideoFeed');
+    if (serverFeed) {
+        serverFeed.src = '';
+    }
+});
+</script>
+{% endblock %}
